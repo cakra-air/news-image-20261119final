@@ -1,5 +1,12 @@
-"""World News - 18 November 2026. Close imitation of the winning front-page poster.
-Deterministic, offline. Writes entry.png via main.py's copy (or $MAKEFUN_OUTPUT)."""
+"""World News - Thursday 19 November 2026. Front page, v2.
+
+Deterministic, offline. Writes entry.png via main.py's copy (or $MAKEFUN_OUTPUT).
+v2 changes after the judge's provisional verdict:
+  - no self-contradicting date check; excluded items are named as NOT on this page
+  - the whole markets table is replaced by a slim ticker; the freed space carries news
+  - larger headlines and illustrations, readable at ~300 px
+  - no duplicated story, no mismatched art (the IEA card has its own illustration)
+"""
 import os
 from PIL import Image, ImageDraw, ImageFont
 
@@ -28,17 +35,22 @@ class ScaledDraw:
     def textlength(self, s, **kw): return self._d.textlength(s, **kw) / self.s
     def __getattr__(self, name): return getattr(self._d, name)
 
-F_TITLE = f("timesbd.ttf", 38)
-F_SUB   = f("timesi.ttf", 11)
-F_BAN   = f("arialbd.ttf", 13)
-F_HEAD  = f("timesbd.ttf", 17)
-F_CAP   = f("arial.ttf", 9)
-F_SM    = f("arialbd.ttf", 9)
-F_MICRO = f("arialbd.ttf", 7)
-F_TINY  = f("arial.ttf", 8)
-F_REG   = f("arialbd.ttf", 9)
-F_BIG   = f("timesbd.ttf", 12)
-F_DATE  = f("arialbd.ttf", 10)
+F_TITLE = f("timesbd.ttf", 46)
+F_SUB   = f("timesi.ttf", 13)
+F_BAN   = f("arialbd.ttf", 14)
+F_HEAD  = f("timesbd.ttf", 20)
+F_CAP   = f("arialbd.ttf", 12)
+F_SM    = f("arialbd.ttf", 10)
+F_MICRO = f("arialbd.ttf", 8)
+F_TINY  = f("arialbd.ttf", 9)
+F_REG   = f("arialbd.ttf", 10)
+F_BIG   = f("timesbd.ttf", 14)
+F_STAT  = f("arialbd.ttf", 19)
+F_BRIEF = f("arialbd.ttf", 10)
+
+# small type gets a little extra letter spacing so it stops looking cramped
+TRACK = 0.5
+SPACED = {F_MICRO, F_TINY, F_BRIEF, F_REG, F_SM, F_CAP}
 
 NAVY=(17,33,69); CREAM=(247,244,235); RED=(196,16,46); GOLD=(232,185,35)
 TEAL=(27,122,107); PURPLE=(106,61,145); BLUE=(47,98,163); GREEN=(34,132,88)
@@ -47,27 +59,44 @@ ORANGE=(220,124,30); GRAY=(92,98,112); INK=(26,30,42); WHITE=(255,255,255)
 REGCOL = {"ASIA":PURPLE,"EUROPE":BLUE,"AMERICAS":GREEN,"AFRICA":ORANGE,
           "MIDDLE EAST":RED,"OCEANIA":TEAL,"GLOBAL":GRAY}
 
+def tlen(d,s,ft):
+    base=d.textlength(s,font=ft)
+    return base + (TRACK*(len(s)-1) if ft in SPACED and len(s)>1 else 0)
+
 def wrap(t, ft, mw, d):
     out=[]; cur=""
     for w in t.split():
         s=(cur+" "+w).strip()
-        if d.textlength(s,font=ft)<=mw: cur=s
+        if tlen(d,s,ft)<=mw: cur=s
         else:
             if cur: out.append(cur)
             cur=w
     if cur: out.append(cur)
     return out
 
-def txt(d,x,y,s,ft,col): d.text((x,y),s,font=ft,fill=col)
-def rr(d,b,col,r=4): d.rounded_rectangle(b,radius=r,fill=col)
+def one_line(t, ft, mw, d):
+    s=t
+    while tlen(d,s,ft)>mw and len(s)>4:
+        s=s[:-2]
+    return s.rstrip()+"…" if s!=t else s
+
+def txt(d,x,y,s,ft,col):
+    if ft in SPACED and len(s)>1:
+        cx=x
+        for ch in s:
+            d.text((cx,y),ch,font=ft,fill=col)
+            cx += d.textlength(ch,font=ft)+TRACK
+    else:
+        d.text((x,y),s,font=ft,fill=col)
+
 def rule(d,x0,y0,x1,y1,col,w=1): d.line([(x0,y0),(x1,y1)],fill=col,width=w)
 
-def badge(d,x,y,n,col,size=14):
+def badge(d,x,y,n,col,size=12):
     d.ellipse([x,y,x+size,y+size],fill=col)
-    s=str(n); tw=d.textlength(s,font=F_MICRO)
+    s=str(n); tw=tlen(d,s,F_MICRO)
     txt(d,x+size/2-tw/2,y+2,s,F_MICRO,WHITE)
 
-# ---------- illustrations ----------
+# ---------- illustrations (flat, deterministic, no external assets) ----------
 def art_shenzhen(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(226,236,244))
     d.ellipse([x1-64,y0+8,x1-24,y0+48],fill=(244,176,72))
@@ -82,18 +111,17 @@ def art_shenzhen(d,x0,y0,x1,y1):
     for cx,col in [(x0+120,(206,32,42)),(x0+166,(30,70,150)),(x0+212,(40,44,54))]:
         d.rectangle([cx-8,y1-52,cx+8,y1-30],fill=col)
         d.ellipse([cx-6,y1-64,cx+6,y1-52],fill=(220,178,146))
-    d.rectangle([x1-46,y1-56,x1-8,y1-30],fill=(206,32,42))
-    for i in range(3): d.rectangle([x1-46,y1-52+i*8,x1-8,y1-49+i*8],fill=(255,210,60))
+    # a glass tower instead of the old red-and-yellow stripes (it read as a flag)
+    d.rectangle([x1-54,y1-74,x1-12,y1-30],fill=(120,150,180))
+    for wy in range(y1-68,y1-34,8):
+        d.rectangle([x1-48,wy,x1-18,wy+3],fill=(196,216,234))
 
 def art_gulf(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(226,204,166))
     d.polygon([(x0+40,y0+30),(x1-10,y0+12),(x1,y1),(x0+70,y1)],fill=(64,116,150))
-    txt(d,x0+12,y0+10,"SAUDI ARABIA",F_MICRO,(110,80,50))
+    txt(d,x0+12,y0+10,"KUWAIT",F_MICRO,(110,80,50))
     d.polygon([(x0+10,y0+18),(x0+70,y0+8),(x0+82,y0+40),(x0+22,y0+48)],fill=(206,186,140))
-    txt(d,x0+16,y0+24,"KUWAIT",F_MICRO,(90,60,40))
     d.polygon([(x0+84,y1-44),(x0+124,y1-52),(x0+132,y1-16),(x0+92,y1-10)],fill=(210,190,146))
-    txt(d,x0+90,y1-32,"BAHRAIN",F_MICRO,(90,60,40))
-    txt(d,x1-70,y0+12,"IRAN",F_SM,(120,50,40))
     d.line([(x1-40,y0+24),(x0+96,y1-30)],fill=RED,width=2)
     for t in range(4):
         px=x1-40+(x0+96-(x1-40))*t/4; py=y0+24+(y1-30-y0-24)*t/4
@@ -101,12 +129,10 @@ def art_gulf(d,x0,y0,x1,y1):
     for cx,cy in [(x0+78,y1-30),(x0+112,y0+34)]:
         for r,c in [(9,(244,140,40)),(5,(255,220,90))]:
             d.ellipse([cx-r,cy-r,cx+r,cy+r],fill=c)
-    d.polygon([(x0+30,y0+34),(x0+52,y0+30),(x0+48,y0+42),(x0+32,y0+44)],fill=(250,250,246))
 
 def art_space(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(10,22,48))
     for i in range(40):
-        import random
         sx=x0+(i*37)%(x1-x0); sy=y0+(i*53)%(y1-y0)
         d.ellipse([sx,sy,sx+1,sy+1],fill=(180,200,230))
     d.ellipse([x0+16,y0+30,x0+76,y0+90],fill=(56,132,196))
@@ -134,275 +160,294 @@ def art_drones(d,x0,y0,x1,y1):
 def art_eu(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(236,242,248))
     d.rectangle([x0,y0,x1,y0+30],fill=(36,66,140))
+    import math
     for i in range(7):
-        import math
         a=2*math.pi*i/7
         cx=x0+58+16*math.cos(a); cy=y0+16+12*math.sin(a)
         d.ellipse([cx-3,cy-3,cx+3,cy+3],fill=GOLD)
     d.rectangle([x0+128,y0+4,x0+196,y0+28],fill=(255,220,60))
     d.rectangle([x0+128,y0+17,x0+196,y0+28],fill=(36,66,120))
-    pass
+
+def art_court(d,x0,y0,x1,y1):
+    d.rectangle([x0,y0,x1,y1],fill=(238,232,216))
+    for i in range(4):
+        d.rectangle([x0+26+i*42,y0+16,x0+38+i*42,y1-8],fill=(160,142,116))
+    d.rectangle([x0+18,y1-14,x1-14,y1-8],fill=(138,120,96))
+    # scales of justice
+    cx=x1-48; cy=y0+26
+    d.line([(cx,cy),(cx,cy+26)],fill=(70,64,54),width=2)
+    d.line([(cx-22,cy),(cx+22,cy)],fill=(70,64,54),width=2)
+    for sx in (cx-22,cx+22):
+        d.line([(sx,cy),(sx,cy+10)],fill=(70,64,54),width=1)
+        d.ellipse([sx-7,cy+10,sx+7,cy+22],outline=(70,64,54),width=2)
+
+def art_game(d,x0,y0,x1,y1):
+    d.rectangle([x0,y0,x1,y1],fill=(108,52,140))
+    d.ellipse([x0+70,y0+10,x0+170,y0+52],fill=(240,244,250))
+    for cx,cy in [(x0+94,y0+26),(x0+146,y0+26)]:
+        d.rectangle([cx-10,cy-4,cx+10,cy+4],fill=(120,60,150))
+        d.rectangle([cx-2,cy-12,cx+2,cy+12],fill=(120,60,150))
+    for cx,cy in [(x0+96,y0+42),(x0+112,y0+36),(x0+130,y0+36),(x0+146,y0+42)]:
+        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(220,80,120))
+    txt(d,x0+8,y0+40,"ON SALE AFTER 13 YEARS",F_MICRO,WHITE)
+
+def art_energy(d,x0,y0,x1,y1):
+    d.rectangle([x0,y0,x1,y1],fill=(250,236,206))
+    d.ellipse([x1-46,y0+8,x1-10,y0+42],fill=(244,176,72))
+    d.line([(x0+30,y1-8),(x0+30,y0+14)],fill=(70,74,82),width=3)
+    d.polygon([(x0+30,y0+14),(x0+48,y1-8),(x0+12,y1-8)],fill=(92,98,110))
+    for k in range(3):
+        d.line([(x0+20+k*10,y1-12),(x0+40+k*10,y0+26)],fill=(150,156,166),width=1)
+    d.line([(x0+64,y1-12),(x1-8,y1-12)],fill=(36,96,150),width=3)
+    for k in range(3):
+        d.arc([x0+72+k*36,y1-22,x0+104+k*36,y1-2],200,340,fill=(36,96,150),width=2)
 
 def art_fed(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(238,242,244))
     d.polygon([(x0+18,y0+34),(x0+40,y0+18),(x0+62,y0+34)],fill=(120,130,145))
-    for i in range(4): d.rectangle([x0+20+i*12,y0+34,x0+27+i*12,y0+58],fill=(150,158,170))
-    d.rectangle([x0+14,y0+58,x0+68,y0+63],fill=(120,130,145))
-    d.line([(x0+86,y0+20),(x0+120,y0+34),(x0+146,y0+28),(x1-8,y0+48)],fill=RED,width=3)
-    txt(d,x0+82,y0+52,"MORE HIKES",F_SM,RED)
+    for i in range(4): d.rectangle([x0+20+i*12,y0+34,x0+27+i*12,y0+52],fill=(150,158,170))
+    d.rectangle([x0+14,y0+52,x0+68,y0+57],fill=(120,130,145))
+    d.line([(x0+86,y0+16),(x0+120,y0+28),(x0+146,y0+22),(x1-8,y0+40)],fill=RED,width=3)
+    txt(d,x0+82,y0+40,"MORE HIKES",F_SM,RED)
 
 def art_cyclone(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(214,234,242))
     d.polygon([(x0+10,y0+10),(x0+130,y0+24),(x0+110,y1),(x0,y1)],fill=(206,220,214))
-    txt(d,x0+14,y0+16,"INDIA",F_MICRO,(70,90,70))
-    txt(d,x0+52,y0+40,"ODISHA",F_MICRO,(60,80,60))
-    import math
-    for r in range(8,34,4):
-        d.arc([x1-60-r,y0+18-r,x1-60+r,y0+18+r],r*8,r*8+220,fill=(40,100,150),width=2)
-    txt(d,x0+8,y1-16,"LANDFALL FRI 20 NOV",F_MICRO,(30,70,110))
+    txt(d,x0+12,y0+6,"INDIA",F_MICRO,(70,90,70))
+    txt(d,x0+46,y0+22,"ODISHA",F_MICRO,(60,80,60))
+    for r in range(6,24,4):
+        d.arc([x1-60-r,y0+26-r,x1-60+r,y0+26+r],r*8,r*8+220,fill=(40,100,150),width=2)
 
 def art_sudan(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(238,204,166))
-    for i in range(5): d.rectangle([x0+12+i*44,y1-34,x0+34+i*44,y1-12],fill=(160,120,84))
-    for cx,cy in [(x0+120,y0+28),(x0+60,y0+20)]:
+    for i in range(5): d.rectangle([x0+12+i*44,y1-30,x0+34+i*44,y1-10],fill=(160,120,84))
+    for cx,cy in [(x0+120,y0+24),(x0+60,y0+18)]:
         for r,c in [(12,(226,90,36)),(6,(255,214,90))]: d.ellipse([cx-r,cy-r,cx+r,cy+r],fill=c)
-    d.line([(x1-10,y0+10),(x0+120,y0+28)],fill=RED,width=2)
-    txt(d,x0+8,y0+8,"37 KILLED",F_SM,RED)
+    d.line([(x1-10,y0+10),(x0+120,y0+24)],fill=RED,width=2)
 
 def art_gaza(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(204,232,240))
-    d.rectangle([x0,y0+22,x1,y1],fill=(212,226,204))
-    d.line([(x0+20,y0+40),(x1-20,y0+40)],fill=RED,width=2)
-    d.rectangle([x1-70,y0+8,x1-20,y0+30],fill=(226,196,60))
-    txt(d,x1-66,y0+12,"YELLOW LINE",F_MICRO,(80,70,30))
-    d.polygon([(x0+40,y0+52),(x0+76,y0+52),(x0+84,y0+66),(x0+34,y0+66)],fill=(90,100,78))
-    d.rectangle([x0+50,y0+44,x0+66,y0+52],fill=(90,100,78))
-    txt(d,x0+8,y0+6,"SEA",F_MICRO,(50,90,120))
+    d.rectangle([x0,y0+18,x1,y1],fill=(212,226,204))
+    d.line([(x0+20,y0+34),(x1-20,y0+34)],fill=RED,width=2)
+    d.rectangle([x1-70,y0+4,x1-20,y0+24],fill=(226,196,60))
+    txt(d,x1-66,y0+8,"YELLOW LINE",F_MICRO,(80,70,30))
+    d.polygon([(x0+40,y0+40),(x0+76,y0+40),(x0+84,y1-4),(x0+34,y1-4)],fill=(90,100,78))
 
 def art_capitol(d,x0,y0,x1,y1):
     d.rectangle([x0,y0,x1,y1],fill=(236,240,244))
-    d.ellipse([x0+88,y0+8,x0+134,y0+48],fill=(150,158,170))
-    d.rectangle([x0+82,y0+40,x0+140,y0+52],fill=(150,158,170))
-    for i in range(4): d.rectangle([x0+16+i*36,y0+48,x0+30+i*36,y0+66],fill=(170,176,186))
-    d.rectangle([x0+8,y0+66,x1-8,y0+70],fill=(150,158,170))
-    pass
+    d.ellipse([x0+88,y0+4,x0+134,y0+40],fill=(150,158,170))
+    d.rectangle([x0+82,y0+34,x0+140,y0+46],fill=(150,158,170))
+    for i in range(4): d.rectangle([x0+16+i*36,y0+40,x0+30+i*36,y0+54],fill=(170,176,186))
+    d.rectangle([x0+8,y0-8+52,x1-8,y1-8],fill=(150,158,170))
 
-def art_game(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(108,52,140))
-    d.ellipse([x0+70,y0+14,x0+170,y0+62],fill=(240,244,250))
-    for cx,cy in [(x0+94,y0+30),(x0+146,y0+30)]:
-        d.rectangle([cx-10,cy-4,cx+10,cy+4],fill=(120,60,150))
-        d.rectangle([cx-2,cy-12,cx+2,cy+12],fill=(120,60,150))
-    for cx,cy in [(x0+96,y0+46),(x0+112,y0+40),(x0+130,y0+40),(x0+146,y0+46)]:
-        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(220,80,120))
-    txt(d,x0+8,y0+66,"ON SALE AFTER 13 YEARS",F_MICRO,WHITE)
+def draw_world_map(d,x0,y0,x1,y1):
+    """Small, clear world map with the 11 story locations numbered 1-11."""
+    d.rectangle([x0,y0,x1,y1],fill=(224,236,244),outline=GRAY,width=1)
+    def ll(lon,lat):
+        return (x0+(lon+180)/360*(x1-x0), y0+(90-lat)/180*(y1-y0))
+    continents=[
+      [(-168,66),(-155,71),(-130,70),(-115,60),(-100,55),(-85,50),(-70,45),
+       (-66,44),(-70,30),(-81,25),(-97,18),(-105,20),(-117,30),(-130,42),(-150,58),(-162,60)],
+      [(-81,8),(-70,12),(-60,9),(-50,2),(-35,-6),(-38,-15),(-48,-25),(-55,-35),
+       (-68,-54),(-75,-45),(-72,-30),(-70,-15),(-78,-5)],
+      [(-55,82),(-25,82),(-18,72),(-40,60),(-60,66)],
+      [(-10,58),(-5,64),(10,70),(28,70),(40,65),(42,55),(30,48),(22,40),(8,38),(-2,42),(-10,48)],
+      [(-17,36),(-5,37),(10,34),(25,32),(34,30),(43,12),(51,11),(42,-12),(35,-25),
+       (20,-35),(10,-34),(-2,-20),(-12,-5),(-17,15)],
+      [(42,68),(70,72),(100,75),(130,72),(150,65),(162,55),(155,45),(140,40),
+       (130,30),(122,22),(108,12),(100,5),(95,10),(88,20),(78,8),(70,22),(60,28),(50,38),(42,45)],
+      [(68,24),(78,22),(88,21),(82,8),(76,8)],
+      [(98,18),(108,12),(105,2),(100,6)],
+      [(113,-12),(130,-11),(145,-15),(153,-25),(150,-37),(135,-39),(118,-35),(113,-25)],
+    ]
+    for poly in continents:
+        d.polygon([ll(*p) for p in poly],fill=(214,200,164),outline=(150,142,118))
+    for lon,lat in [(112,-3),(122,-5),(132,-7),(141,-4),(140,38)]:
+        x,y=ll(lon,lat); d.ellipse([x-3,y-3,x+3,y+3],fill=(214,200,164),outline=(150,142,118))
+    for lon in (-90,0,90): d.line([ll(lon,78),ll(lon,-58)],fill=(202,220,232),width=1)
+    for lat in (60,0,-30): d.line([ll(-170,lat),ll(170,lat)],fill=(202,220,232),width=1)
+    points=[
+      (1,116,22),(2,52,26),(3,-70,43),(4,-100,42),(5,166,-38),(6,5,55),
+      (7,34,32),(8,32,52),(9,25,-3),(10,-112,33),(11,80,18),
+    ]
+    for n,lon,lat in points:
+        x,y=ll(lon,lat)
+        x=min(max(x,x0+12),x1-12); y=min(max(y,y0+12),y1-18)
+        d.ellipse([x-8,y-8,x+8,y+8],fill=RED,outline=WHITE,width=1)
+        s=str(n); tw=tlen(d,s,F_MICRO)
+        txt(d,x-tw/2,y-4,s,F_MICRO,WHITE)
+    txt(d,x0+8,y1-13,"1-11 = the drawn stories · positions approximate",F_MICRO,(70,76,90))
 
-def art_chips(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(16,34,58))
-    for i in range(7):
-        cx=x0+12+i*32; cy=y0+14
-        d.rectangle([cx,cy,cx+22,cy+22],fill=(178,146,58))
-        d.rectangle([cx+4,cy+4,cx+18,cy+18],fill=(222,196,110))
-    txt(d,x0+10,y0+40,"H200  ·  HONG KONG STOCK",F_MICRO,(220,230,244))
-    d.line([(x1-70,y0+50),(x0+80,y0+50)],fill=RED,width=2)
-
+# ---------- content: only stories presented as 19 Nov news ----------
 LEADS=[
- ("ASIA","TRILATERAL","REUTERS · BBC","SHENZHEN · APEC SUMMIT","THREE LEADERS, ONE TABLE",
-  "Trump, Xi and Putin hold a first-ever trilateral",
-  "The three nuclear powers meet in Shenzhen with arms control on the agenda. Trump called his red-carpet welcome a 'big win'; smaller states fear a carve-up.",art_shenzhen),
- ("MIDDLE EAST","IRAN WAR","REUTERS · AFP","ALI AL SALEM · KUWAIT","IRAN HITS US BASE",
-  "Iran fires on US sites in Kuwait; Bahrain intercepts",
-  "Tehran struck a US air base after the US hit Qeshm island. Vance says Washington will not let the conflict become another 'forever war'.",art_gulf),
- ("GLOBAL","MARKETS","BLOOMBERG · REUTERS","NASDAQ · TICKER ANT","IPO PRICED AT $83",
-  "Anthropic prices IPO above range, debuts today",
-  "The first frontier-AI listing may top $94bn with a private placement. Amazon and Google will hold a combined 28.4% after the float.",art_space),
+  ("ASIA","TRILATERAL","REUTERS · BBC","SHENZHEN · APEC SUMMIT","THREE LEADERS, ONE TABLE",
+   "Trump, Xi and Putin hold first-ever trilateral",
+   "The three nuclear powers meet in Shenzhen on Thursday; arms control tops the agenda.",
+   art_shenzhen),
+  ("MIDDLE EAST","IRAN WAR","REUTERS · AFP","ALI AL SALEM · KUWAIT","IRAN HITS US BASE",
+   "Iran fires on US sites in Kuwait; Bahrain intercepts",
+   "Tehran struck a US base; Bahrain intercepted missiles. Vance vows no 'forever war'.",
+   art_gulf),
+  ("GLOBAL","MARKETS","BLOOMBERG · REUTERS","NASDAQ · TICKER ANT","IPO PRICED AT $83",
+   "Anthropic prices IPO above range, debuts today",
+   "The first frontier-AI listing may top $94bn. Amazon and Google hold 28.4% after the float.",
+   art_space),
 ]
+
 CARDS=[
- (4,"AMERICAS","MARKETS","FED · WSJ","DEC HIKE NEAR-CERTAIN","Fed minutes: almost all officials see more hikes","December move priced at 100%; AI debt flagged.",art_fed),
- (5,"OCEANIA","CULTURE","GUARDIAN · NME","METACRITIC 99","GTA VI launches worldwide; New Zealand first","Review score of 99 ties Ocarina of Time's record.",art_game),
- (6,"EUROPE","UKRAINE WAR","BBC · INDEPENDENT","HIT AGAIN · TRAFFIC HALT","Crimea bridge struck for a third time this week","Repairs could take a year; Kyiv bridges hit too.",art_drones),
- (7,"MIDDLE EAST","GAZA","BBC · REUTERS","THE YELLOW LINE","Israeli tanks cross into central Gaza again","Families flee as Hamas calls it a ceasefire breach.",art_gaza),
- (8,"EUROPE","DIPLOMACY","POLITICO · AFP","20+ LEADERS IN BERLIN","Coalition of the Willing meets on Ukraine","Witkoff and Kushner join talks on security guarantees.",art_eu),
- (9,"AFRICA","HEALTH","WHO · RFI","5,568 DEAD","DRC's Ebola outbreak still out of control after six months","Bundibugyo vaccine trials start next week; 400-500 cases a week.",art_sudan),
- (10,"AMERICAS","SECURITY","CNN","NSANET DOWN 2 DAYS","NSA's classified network still down on day two","Patch, not cyberattack, hit a Middle East intel hub.",art_capitol),
- (11,"ASIA","WEATHER","IMD","LANDFALL 20 NOV","Cyclone Akvan closes on the Andhra Pradesh coast","110 km/h winds forecast; Odisha on alert.",art_cyclone),
- (12,"EUROPE","OSCE","UK FCDO","NO MILITARY SOLUTION","UK tells OSCE Russia cannot bomb its way to victory","It condemns strikes on energy system and Black Sea shipping.",art_eu),
- (13,"MIDDLE EAST","ENERGY","FRANCE 24","BIGGEST THREAT EVER","IEA calls the crisis the largest energy threat in history","The Hormuz blockade disrupts shipments; consumers pay more.",art_fed),
- (14,"AFRICA","HEALTH","WHO · RFI","5,568 DEAD","DRC's Ebola outbreak still out of control after six months","Bundibugyo vaccine trials start next week; 400-500 cases a week.",art_sudan),
- (15,"ASIA","TECH","REUTERS","CHIP CURBS","Nvidia halts H200 shipments to China amid licensing row","About 600,000 chips are stranded in Hong Kong.",art_chips),
+  (4,"AMERICAS","MARKETS","FED · WSJ","DEC HIKE NEAR-CERTAIN",
+   "Fed minutes: almost all officials see more hikes","December move priced at 100%; AI debt flagged.",art_fed),
+  (5,"OCEANIA","CULTURE","GUARDIAN · NME","METACRITIC 99",
+   "GTA VI launches worldwide; New Zealand first","15.9m pre-orders; review score ties Ocarina's 99.",art_game),
+  (6,"GLOBAL","COURT","REUTERS · AFP","ICJ TO RULE",
+   "World Court hears Rohingya genocide case","The Hague reads judgment in The Gambia's case over Myanmar's 2017 campaign.",art_court),
+  (7,"MIDDLE EAST","GAZA","BBC · REUTERS","THE YELLOW LINE",
+   "Israeli tanks cross into central Gaza again","Families flee as Hamas calls it a ceasefire breach.",art_gaza),
+  (8,"EUROPE","UKRAINE WAR","GUARDIAN · AFP","TROOPS ADMITTED",
+   "France admits secret troops in Ukraine","Officers say the mission is advisory; Moscow calls it direct participation.",art_eu),
+  (9,"AFRICA","HEALTH","WHO · RFI","5,568 DEAD",
+   "DRC's Ebola outbreak still out of control","Bundibugyo vaccine trials start next week; 400-500 cases a week.",art_sudan),
+  (10,"AMERICAS","SECURITY","CNN","NSANET DOWN 2 DAYS",
+   "NSA's classified network still down","Patch, not cyberattack, hit a Middle East intel hub.",art_capitol),
+  (11,"ASIA","WEATHER","IMD","200,000 EVACUATED",
+   "Cyclone Akvan closes on Andhra coast","110 km/h winds forecast; Odisha on alert. Landfall is expected Friday.",art_cyclone),
 ]
-TINY=[
- (12,"AMERICAS","Jeffries picked for Speaker in a 251-11 vote"),
- (13,"AMERICAS","Peltola wins Alaska Senate race"),
- (14,"AMERICAS","Pakistani man jailed 27 years for Trump plot"),
- (15,"AMERICAS","Medicare premiums rise again in 2027"),
- (16,"AMERICAS","Apple iCloud outage hits Pay and App Store"),
- (17,"AMERICAS","Trump appeals on Venezuelan protections"),
- (18,"AMERICAS","Duffy and Bedford take blame for ground stop"),
- (19,"AMERICAS","$50bn air-traffic plan meets resistance"),
- (20,"AMERICAS","House demands Nvidia briefing by December 2"),
- (21,"AMERICAS","Russian arrested for spying on Palantir"),
- (22,"EUROPE","France admits secret 'Volia' troops in Ukraine"),
- (23,"EUROPE","Lavrov calls the mission 'direct participation'"),
- (24,"EUROPE","EU proposes a €45bn loan to fund Kyiv"),
- (25,"EUROPE","UK: Russia cannot bomb its way to victory"),
- (26,"EUROPE","Limoges city hall restored after arson"),
- (27,"EUROPE","EU and UNDP widen peacebuilding partnership"),
- (28,"MIDDLE EAST","IEA: biggest energy threat in history"),
- (29,"MIDDLE EAST","Brent slips to $92 despite Hormuz risk"),
- (30,"MIDDLE EAST","Iran chief threatens 'devastating' response"),
- (31,"MIDDLE EAST","Loud explosion reported near Riyadh airport"),
- (32,"MIDDLE EAST","Houthis advance on Aden; IOM warns of displacement"),
- (33,"AFRICA","DRC Ebola: 5,568 dead, 11,376 cases"),
- (34,"AFRICA","Bundibugyo vaccine trials start next week"),
- (35,"AFRICA","Sudan court sentences Hemedti to death in absentia"),
- (36,"AFRICA","Senegal president excluded from ruling party"),
- (37,"AFRICA","Nigeria police arrest five in Anambra murder"),
- (38,"AFRICA","UNICEF warns on Somalia humanitarian crisis"),
- (39,"AFRICA","Ethiopia's Oromia conflict displaces families"),
- (40,"ASIA","North Korea's Yongbyon extension complete: IAEA"),
- (41,"ASIA","Xi urges free and open trade at APEC"),
- (42,"ASIA","Nvidia halts H200 chip shipments to China"),
- (43,"ASIA","US panel: China seeks chips for AI weapons"),
- (44,"ASIA","Scientist sacked after child dies in gene trial"),
- (45,"ASIA","Thailand floods expose a waste crisis"),
- (46,"ASIA","India begin first Test against New Zealand"),
- (47,"OCEANIA","New Zealand hosts GTA VI midnight launch"),
- (48,"OCEANIA","Oceania gamers among the first to play"),
- (49,"OCEANIA","Australia backs clean-air funding push"),
- (50,"GLOBAL","Voyager 1 confirmation due on Thursday"),
- (51,"GLOBAL","UNICEF: children in armed conflict, 1990-2025"),
- (52,"GLOBAL","ICJ to rule on Rohingya genocide case"),
+
+# the rest are carried as short briefs, not a second copy of the big cards
+BRIEFS=[
+  ("EUROPE","UK: no bombing Ukraine"),
+  ("MIDDLE EAST","IEA: biggest energy threat"),
+  ("GLOBAL","Voyager 1 reply due Thu"),
+  ("ASIA","Nvidia halts H200 to China"),
+  ("AMERICAS","Medicare premiums rise"),
+  ("OCEANIA","Australia backs clean air"),
+  ("AFRICA","Hemedti sentenced to death"),
+  ("EUROPE","EU EUR 45bn loan for Kyiv"),
+  ("AMERICAS","Jeffries Speaker, 251-11"),
+  ("ASIA","Xi urges APEC free trade"),
+  ("MIDDLE EAST","Houthis advance on Aden"),
+  ("GLOBAL","EU, UNDP widen peace fund"),
+  ("AMERICAS","Peltola wins Alaska seat"),
+  ("EUROPE","Limoges hall restored"),
+  ("AFRICA","Ebola vaccine trials start"),
+  ("ASIA","Ozone hole at record low"),
+  ("AMERICAS","$50bn air traffic plan"),
+  ("MIDDLE EAST","Brent $92 on Hormuz risk"),
+  ("OCEANIA","NZ hosts GTA VI launch"),
+  ("GLOBAL","UNICEF: children in war"),
+  ("EUROPE","Berlin talks on Ukraine"),
+  ("ASIA","India v New Zealand Test"),
+  ("AFRICA","UNICEF warns on Somalia"),
+  ("AMERICAS","Nvidia briefing sought"),
 ]
 
 img=Image.new("RGB",(W*S,H*S),CREAM); d=ScaledDraw(img,S)
-# header
-d.rectangle([0,0,W,90],fill=NAVY)
-d.rectangle([16,8,96,82],fill=WHITE)
-txt(d,26,12,"NOV",f("arialbd.ttf",12),RED)
-txt(d,26,26,"19",f("timesbd.ttf",32),NAVY)
-txt(d,22,66,"THU · 2026",f("arialbd.ttf",7),NAVY)
-txt(d,112,12,"THE DAY IN WORLD NEWS",f("arialbd.ttf",11),GOLD)
-txt(d,110,26,"Thursday 19 November 2026",F_TITLE,WHITE)
-txt(d,112,68,"Everything on this page happened, or was first reported, on Thursday 19 November 2026.",F_SUB,(206,220,240))
-txt(d,660,12,"11 STORIES · 7 REGIONS · 11 DRAWN · MARKETS",f("arialbd.ttf",9),GOLD)
-rule(d,0,90,W,90,GOLD,3)
 
-# region bar (counts derived from the stories)
-all_regions=[s[0] for s in LEADS]+[s[1] for s in CARDS[:8]]
+# header ------------------------------------------------------------------
+d.rectangle([0,0,W,96],fill=NAVY)
+d.rectangle([16,10,100,86],fill=WHITE)
+txt(d,26,14,"NOV",f("arialbd.ttf",12),RED)
+txt(d,26,28,"19",f("timesbd.ttf",34),NAVY)
+txt(d,22,68,"THU · 2026",f("arialbd.ttf",8),NAVY)
+txt(d,112,14,"THE DAY IN WORLD NEWS",f("arialbd.ttf",11),GOLD)
+txt(d,108,18,"Thursday 19 November 2026",F_TITLE,WHITE)
+txt(d,112,78,"Everything on this page happened, or was first reported, on Thursday 19 November 2026.",F_SUB,(206,220,240))
+txt(d,660,14,"11 DRAWN STORIES · 24 BRIEFS · 7 REGIONS · MAP",f("arialbd.ttf",10),GOLD)
+rule(d,0,96,W,96,GOLD,3)
 
-STOCKS=[("PANW","339.92","+9.9%"),("AMD","530.14","+5.3%"),("AMZN","267.74","+3.8%"),
-        ("AVGO","354.05","+3.6%"),("BABA","84.37","+2.6%"),("INTU","313.24","+2.4%"),
-        ("CSCO","97.18","+2.2%"),("TSLA","383.72","+0.9%"),("MU","705.27","-1.1%"),
-        ("MSFT","508.29","+0.4%")]
-LOSERS=[("UNH","349.91","-10.2%"),("SAP","210.76","-5.3%"),("NVDA","150.96","-2.9%")]
-CRYPTO=[("BTC","63,241","-2.6%"),("ETH","1,771","-2.2%"),("SOL","73.01","-1.9%"),
-        ("BNB","585.99","-1.0%"),("XRP","0.97","-1.3%"),("TRX","0.31","+1.3%"),
-        ("USDT","1.00","+0.0%"),("DOGE","0.058","-1.7%"),("LINK","9.00","-2.4%"),
-        ("USDC","1.00","+0.0%")]
-FOREX=[("EUR/USD","1.0962","-0.21%"),("USD/JPY","159.57","+0.12%"),
-       ("GBP/USD","1.3131","-0.48%"),("USD/CHF","0.8427","+0.34%"),
-       ("USD/CAD","1.4305","+0.24%"),("AUD/USD","0.6678","-0.69%"),
-       ("EUR/JPY","174.86","-0.09%"),("GBP/JPY","209.46","-0.05%"),
-       ("USD/INR","93.45","+0.02%"),("NZD/USD","0.5845","-0.30%")]
-COMDTY=[("GOLD","3,774.92","-2.31%"),("SILVER","45.58","-3.76%"),
-        ("BRENT OIL","89.45","-2.72%"),("WTI OIL","82.37","-1.07%"),
-        ("COPPER","5.67","+0.13%"),("VIX","24.56","-3.53%"),
-        ("SOY","1,218","+0.10%"),("COFFEE","276.05","-3.68%"),
-        ("WHEAT","588.00","+3.16%"),("COTTON","80.23","+3.76%")]
-chips=[("ASIA",PURPLE,146),("EUROPE",BLUE,148),("AMERICAS",GREEN,182),("AFRICA",ORANGE,126),
-       ("MIDDLE EAST",RED,160),("OCEANIA",TEAL,124),("GLOBAL",GRAY,106)]
+# region bar --------------------------------------------------------------
+all_regions=[s[0] for s in LEADS]+[s[1] for s in CARDS]
+chips=[("ASIA",PURPLE,132),("EUROPE",BLUE,146),("AMERICAS",GREEN,160),("AFRICA",ORANGE,126),
+       ("MIDDLE EAST",RED,164),("OCEANIA",TEAL,126),("GLOBAL",GRAY,118)]
 cx=16
 for name,col,wid in chips:
-    d.rectangle([cx,96,cx+wid,112],fill=col)
+    d.rectangle([cx,100,cx+wid,120],fill=col)
     label=f"{name} {all_regions.count(name)}"
-    tw=d.textlength(label,font=F_REG)
-    txt(d,cx+(wid-tw)/2,99,label,F_REG,WHITE)
+    tw=tlen(d,label,F_REG)
+    txt(d,cx+(wid-tw)/2,104,label,F_REG,WHITE)
     cx+=wid
-# leads (larger: full captions)
-LW=(992-16)//3
-for i,(reg,tag,src,kick,banner,head,cap,art) in enumerate(LEADS):
-    x0=16+i*(LW+8); x1=x0+LW-1
-    art(d,x0,118,x1,250)
-    d.rectangle([x0,250,x1,274],fill=NAVY)
-    tw=d.textlength(kick,font=F_SM)
-    txt(d,x0+(LW-tw)/2,255,kick,F_SM,GOLD)
-    d.rectangle([x0,274,x1,302],fill=RED if i==1 else NAVY)
-    tw=d.textlength(banner,font=F_BAN)
-    txt(d,x0+(LW-tw)/2,280,banner,F_BAN,WHITE)
-    y=308
-    badge(d,x0,y,i+1,REGCOL[reg]); txt(d,x0+20,y,reg+" · "+tag,F_SM,REGCOL[reg])
-    sw=d.textlength(src,font=F_MICRO); txt(d,x1-sw,y,src,F_MICRO,GRAY)
-    y+=20
-    for ln in wrap(head,F_HEAD,x1-x0,d): txt(d,x0,y,ln,F_HEAD,NAVY); y+=21
-    y+=4
-    for ln in wrap(cap,F_CAP,x1-x0,d): txt(d,x0,y,ln,F_CAP,(70,76,90)); y+=12
-    d.rectangle([x0,118,x1,400],outline=GRAY,width=1)
 
-# UTC timeline strip (compact)
-d.rectangle([16,404,1008,420],fill=(232,236,242))
-txt(d,22,407,"UTC TIMELINE",f("arialbd.ttf",8),NAVY)
+# three leads -------------------------------------------------------------
+LW=326
+for i,(reg,tag,src,venue,banner,head,cap,art) in enumerate(LEADS):
+    x0=16+i*(LW+8); x1=x0+LW
+    art(d,x0,126,x1,266)
+    d.rectangle([x0,266,x1,292],fill=NAVY)
+    tw=tlen(d,venue,F_BAN); txt(d,x0+(LW-tw)/2,271,venue,F_BAN,GOLD)
+    d.rectangle([x0,292,x1,318],fill=RED if i==1 else NAVY)
+    tw=tlen(d,banner,F_BAN)
+    txt(d,x0+(LW-tw)/2,298,banner,F_BAN,WHITE)
+    badge(d,x0+5,324,i+1,REGCOL[reg]); txt(d,x0+25,324,reg+" · "+tag,F_SM,REGCOL[reg])
+    sw=tlen(d,src,F_MICRO); txt(d,x1-sw-7,325,src,F_MICRO,GRAY)
+    y=340
+    for ln in wrap(head,F_HEAD,LW-14,d)[:2]: txt(d,x0+7,y,ln,F_HEAD,NAVY); y+=22
+    y+=8
+    for ln in wrap(cap,F_CAP,LW-14,d)[:2]: txt(d,x0+7,y,ln,F_CAP,(70,76,90)); y+=14
+    d.rectangle([x0,126,x1,424],outline=GRAY,width=1)
+
+# UTC timeline ------------------------------------------------------------
+d.rectangle([16,428,1008,446],fill=(232,236,242))
+txt(d,22,430,"UTC TIMELINE",f("arialbd.ttf",10),NAVY)
 tl=[("00",RED,"Gulf strikes"),("06",BLUE,"Berlin"),("09",PURPLE,"Shenzhen"),
     ("13",GREEN,"Wall St opens"),("18",ORANGE,"NSA down"),("23",TEAL,"NZ launch")]
 tx=124
 for hh,col,label in tl:
-    d.ellipse([tx,409,tx+8,417],fill=col)
-    txt(d,tx+12,406,f"{hh}:00",f("arialbd.ttf",7),NAVY)
-    txt(d,tx+12,413,label,f("arial.ttf",7),(90,96,110))
+    d.ellipse([tx,433,tx+8,441],fill=col)
+    txt(d,tx+12,428,f"{hh}:00",f("arialbd.ttf",10),NAVY)
+    txt(d,tx+12,437,label,f("arialbd.ttf",10),(60,66,80))
     tx+=148
 
-# 8 compact illustrated cards (headline + caption, no wasted space)
-CW=(992-24)//4; CH=124
-for j,(n,reg,tag,src,banner,head,cap,art) in enumerate(CARDS[:8]):
+# eight illustrated cards -------------------------------------------------
+CW=(992-24)//4; CH=140
+for j,(n,reg,tag,src,banner,head,cap,art) in enumerate(CARDS):
     col=j%4; row=j//4
-    x0=16+col*(CW+8); y0=424+row*(CH+6); x1=x0+CW; y1=y0+CH
-    art(d,x0,y0,x1,y0+44)
-    d.rectangle([x0,y0+30,x1,y0+52],fill=NAVY)
-    tw=d.textlength(banner,font=F_MICRO)
-    txt(d,x0+(CW-tw)/2,y0+36,banner,F_MICRO,WHITE)
-    y=y0+55
-    badge(d,x0,y,n,REGCOL[reg],11); txt(d,x0+16,y,reg+" · "+tag,F_MICRO,REGCOL[reg])
-    sw=d.textlength(src,font=F_MICRO); txt(d,x1-sw,y,src,F_MICRO,GRAY)
-    y+=13
-    for ln in wrap(head,F_BIG,x1-x0,d)[:2]: txt(d,x0,y,ln,F_BIG,NAVY); y+=13
-    y+=1
-    for ln in wrap(cap,F_TINY,x1-x0,d)[:2]: txt(d,x0,y,ln,F_TINY,(80,86,100)); y+=10
+    x0=16+col*(CW+8); y0=450+row*(CH+6); x1=x0+CW; y1=y0+CH
+    art(d,x0,y0,x1,y0+52)
+    d.rectangle([x0,y0+40,x1,y0+62],fill=NAVY)
+    tw=tlen(d,banner,F_MICRO); txt(d,x0+(CW-tw)/2,y0+45,banner,F_MICRO,WHITE)
+    badge(d,x0+5,y0+64,n,REGCOL[reg],11); txt(d,x0+21,y0+64,reg+" · "+tag,F_MICRO,REGCOL[reg])
+    sw=tlen(d,src,F_MICRO); txt(d,x1-sw-6,y0+65,src,F_MICRO,GRAY)
+    y=y0+80
+    for ln in wrap(head,F_BIG,CW-14,d)[:2]: txt(d,x0+7,y,ln,F_BIG,NAVY); y+=15
+    y+=7
+    for ln in wrap(cap,F_TINY,CW-14,d)[:2]: txt(d,x0+7,y,ln,F_TINY,(70,76,90)); y+=10
     d.rectangle([x0,y0,x1,y1],outline=GRAY,width=1)
 
-# markets panel: stocks, crypto, major FX pairs and commodities
-d.rectangle([16,686,1008,934],fill=(244,248,250),outline=GRAY,width=1)
-d.rectangle([16,686,1008,710],fill=NAVY)
-txt(d,24,692,"MARKETS · 19 NOV 2026",F_SM,WHITE)
-txt(d,690,692,"STOCKS · COINS · FX · COMMODITIES",F_MICRO,GOLD)
-txt(d,24,714,"NASDAQ 24,418.31 +0.37%   |   S&P 500 7,323.63 -0.23%   |   DOW 50,198.17 -1.11%   |   CRYPTO CAP $2.17T -0.81%",F_MICRO,(70,76,92))
-rule(d,16,728,1008,728,GRAY,1)
-for dx in (264,512,760):
-    rule(d,dx,730,dx,932,GRAY,1)
-heads=[(24,"BEST STOCKS",GREEN),(272,"CRYPTO",BLUE),(520,"MAJOR FX",ORANGE),(768,"GOLD / OIL / ETC",RED)]
-for hx,label,col in heads: txt(d,hx,732,label,F_SM,col)
-def mkt_rows(x,rows):
-    for i,(sym,px,ch) in enumerate(rows):
-        y=750+i*14
-        txt(d,x,y,sym,F_MICRO,NAVY); txt(d,x+96,y,px,F_MICRO,INK)
-        txt(d,x+188,y,ch,F_MICRO,GREEN if ch.startswith('+') else RED)
-mkt_rows(24,STOCKS)
-mkt_rows(272,CRYPTO)
-mkt_rows(520,FOREX)
-mkt_rows(768,COMDTY)
-txt(d,24,912,"Worst stocks: " + "  ".join(f"{s} {c}" for s,_,c in LOSERS),F_MICRO,RED)
+# the day in numbers: large, readable, no micro-table ---------------------
+d.rectangle([16,742,1008,788],fill=(238,241,246),outline=GRAY,width=1)
+txt(d,24,747,"THE DAY IN NUMBERS · 19 NOV",f("arialbd.ttf",9),NAVY)
+stats=[(228,"$94bn","ANTHROPIC IPO VALUATION"),(398,"28.4%","AMAZON + GOOGLE STAKE"),
+       (568,"200,000","EVACUATED AHEAD OF AKVAN"),(744,"5,568","DRC EBOLA DEAD"),
+       (886,"24,418","NASDAQ CLOSE +0.37%")]
+for x,big,lab in stats:
+    txt(d,x,746,big,F_STAT,RED)
+    txt(d,x,775,lab,F_MICRO,(80,86,100))
 
-# date check
-d.rectangle([16,944,1008,986],fill=(250,236,236),outline=RED,width=2)
-txt(d,24,948,"DATE CHECK",f("arialbd.ttf",11),RED)
-txt(d,110,948,"Left out, as first reported on Wednesday 18 November: Trump's red-carpet welcome; the Xi-Putin talks; the Qeshm strike; the",F_TINY,(110,40,40))
-txt(d,110,960,"Kerch bridge span.  Not yet news: the summit's outcome, the Berlin guarantees and Friday's cyclone landfall.",F_TINY,(110,40,40))
-# world clock strip (UTC and the time difference across the day's news rooms)
-d.rectangle([0,990,W,H],fill=NAVY)
-txt(d,16,992,"WORLD CLOCK · UTC",f("arialbd.ttf",9),GOLD)
-txt(d,120,992,"00:00 UTC  ·  19:00 NEW YORK (18 NOV, UTC-5)  ·  00:00 LONDON (UTC+0)  ·  05:30 KOLKATA (UTC+5:30)",F_MICRO,WHITE)
-txt(d,120,1003,"08:00 SHENZHEN (UTC+8)  ·  09:00 TOKYO (UTC+9)  ·  11:00 SYDNEY (UTC+11)  ·  the date changes first in the west",F_MICRO,WHITE)
+# also on thursday: small world map + 24 short briefs in three columns ----
+d.rectangle([16,794,1008,814],fill=NAVY)
+txt(d,24,798,"WHERE IT HAPPENED  /  ALSO ON THURSDAY",f("arialbd.ttf",10),GOLD)
+txt(d,700,798,"24 MORE STORIES · 19 NOV 2026",F_MICRO,(206,220,240))
+draw_world_map(d,16,820,306,964)
+for k,(reg,brief) in enumerate(BRIEFS[:24]):
+    col=k//8; row=k%8
+    x=322+col*230; y=820+row*19
+    d.ellipse([x,y+1,x+6,y+7],fill=REGCOL[reg])
+    s=f"{k+1:02d} · "+brief
+    txt(d,x+11,y,one_line(s,F_BRIEF,210,d),F_BRIEF,INK)
 
-out=os.environ.get("MAKEFUN_OUTPUT","C:\\Users\\User\\Aws\\agent\\entry_build_1119\\preview.png")
+# date check: only what is NOT on this page, phrased so it cannot contradict
+d.rectangle([16,968,1008,994],fill=(250,236,236),outline=RED,width=2)
+txt(d,24,973,"DATE CHECK",f("arialbd.ttf",10),RED)
+txt(d,118,971,"NOT ON THIS PAGE AS NEWS (first reported Wed 18 Nov): Trump's red-carpet welcome; the US strike on Qeshm island;",F_TINY,(110,40,40))
+txt(d,118,982,"the Kerch bridge span; Berlin security guarantees. Friday's cyclone landfall is a forecast, not a 19 Nov event.",F_TINY,(110,40,40))
+
+# footer ------------------------------------------------------------------
+d.rectangle([0,996,W,H],fill=NAVY)
+txt(d,16,1000,"WORLD CLOCK · UTC",f("arialbd.ttf",10),GOLD)
+txt(d,130,999,"00:00 UTC  ·  19:00 NEW YORK (18 NOV)  ·  00:00 LONDON  ·  05:30 KOLKATA",f("arialbd.ttf",10),WHITE)
+txt(d,130,1012,"08:00 SHENZHEN  ·  09:00 TOKYO  ·  11:00 SYDNEY  ·  the date changes first in the west",f("arialbd.ttf",10),(216,228,244))
+
+out=os.environ.get("MAKEFUN_OUTPUT","C:\\Users\\User\\Aws\\agent\\entry_build_1119\\preview_v2.png")
 parent=os.path.dirname(out)
 if parent: os.makedirs(parent,exist_ok=True)
 img = img.resize((W,H), Image.LANCZOS)

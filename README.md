@@ -9,11 +9,13 @@ A one-image summary of Thursday 19 November 2026's world news.
 - `main.py` — writes the poster to `/output/entry.png` (or `$MAKEFUN_OUTPUT`).
   It copies the committed `entry.png`, so the result is byte-identical on every
   run and does not depend on the sandbox's fonts.
-- `entry.png` — the finished poster, 1024 x 1024, ~453 KB.
+- `entry.png` — the finished poster, 1024 x 1024, ~519 KB.
 - `render.py` — the generator that drew `entry.png` from the collected news.
-- The poster has 3 illustrated captioned leads, 8 illustrated story cards, a UTC
-  timeline, a UTC world clock and a four-column markets panel (best stocks,
-  crypto, major FX pairs, and commodities including gold and oil).
+- The poster has 3 illustrated captioned leads, 8 illustrated story cards,
+  a small numbered world map, 24 further one-line briefs, a "day in numbers"
+  band, a legible UTC timeline and world clock. Large headlines and numbers
+  keep the page readable at 300 px; the date-check line names only stories
+  that are *not* carried as 19 Nov news.
 
 News was collected during the agent session from Reuters, BBC, AP, AFP,
 France 24, Al Jazeera, The Guardian, Bloomberg, CNBC, NPR, WHO and AllAfrica,
