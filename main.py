@@ -1,17 +1,23 @@
-"""Write the day's news poster to /output/entry.png.
+"""Place the finished 19 November world-news poster at the grader's output path.
 
-The repository holds the finished poster (entry.png); this program copies it
-to the required output path. Offline and deterministic: identical bytes on
-every run.
+The artwork is rendered by render.py and stored in entry.png. Copying those
+bytes keeps every graded run identical, offline and free of font dependencies.
 """
 import os
-import shutil
 from pathlib import Path
+from shutil import copyfile
 
-HERE = Path(__file__).resolve().parent
-SOURCE = HERE / "entry.png"
-OUTPUT = Path(os.environ.get("MAKEFUN_OUTPUT", "/output/entry.png"))
+ROOT = Path(__file__).resolve().parent
+ART = ROOT / "entry.png"
+DEST = Path(os.environ.get("MAKEFUN_OUTPUT", "/output/entry.png"))
 
-OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-shutil.copyfile(SOURCE, OUTPUT)
-print(f"Wrote {OUTPUT} ({OUTPUT.stat().st_size} bytes)")
+with ART.open("rb") as stream:
+    if stream.read(8) != b"\x89PNG\r\n\x1a\n":
+        raise SystemExit("the committed poster is not a PNG")
+
+if ART.stat().st_size > 1024 * 1024:
+    raise SystemExit("the poster is larger than the 1 MiB limit")
+
+DEST.parent.mkdir(parents=True, exist_ok=True)
+copyfile(ART, DEST)
+print("wrote", DEST, DEST.stat().st_size, "bytes")
