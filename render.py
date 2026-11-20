@@ -129,34 +129,62 @@ def art_shenzhen(d,x0,y0,x1,y1):
     vg(d,x0,y0,x1,y1,(204,226,244),(250,216,170))
     glow(d,x1-46,y0+26,34,(255,238,176),(244,222,180))
     d.ellipse([x1-58,y0+14,x1-34,y0+38],fill=(248,194,88))
-    d.polygon([(x0,y0+52),(x0+52,y0+24),(x0+96,y0+46),(x0+152,y0+18),
-               (x1,y0+42),(x1,y0+82),(x0,y0+82)],fill=(178,196,214))
-    d.polygon([(x0,y0+68),(x0+72,y0+40),(x0+142,y0+62),(x1,y0+50),
-               (x1,y0+98),(x0,y0+98)],fill=(146,170,194))
-    d.rectangle([x0,y0+96,x1,y1],fill=(124,160,192))
+    d.polygon([(x0,y0+48),(x0+52,y0+20),(x0+96,y0+40),(x0+152,y0+14),
+               (x1,y0+38),(x1,y0+82),(x0,y0+82)],fill=(180,198,216))
+    d.polygon([(x0,y0+64),(x0+74,y0+36),(x0+144,y0+58),(x1,y0+46),
+               (x1,y0+96),(x0,y0+96)],fill=(148,172,196))
+    d.rectangle([x0,y0+94,x1,y1],fill=(126,160,192))
     for k in range(6):
-        d.rectangle([x0+12+k*3,y0+101+k*6,x1-18-k*5,y0+102+k*6],
-                    fill=mix((124,160,192),(250,216,170),0.32))
-    for i,ht in enumerate([22,38,30,52,34,26,44]):
+        d.rectangle([x0+12+k*3,y0+99+k*6,x1-18-k*5,y0+100+k*6],
+                    fill=mix((126,160,192),(250,216,170),0.3))
+    for i,ht in enumerate([20,34,26,46,30,22,38]):
         bx=x0+8+i*34
-        d.rectangle([bx,y0+96-ht,bx+26,y0+96],fill=(138,158,180))
-        for wy in range(y0+100-ht,y0+92,7):
-            d.rectangle([bx+4,wy,bx+9,wy+3],fill=(210,226,240))
-            d.rectangle([bx+15,wy,bx+20,wy+3],fill=(210,226,240))
-    for i,ht in enumerate([30,52,40,70,46,34,58]):
+        d.rectangle([bx,y0+94-ht,bx+26,y0+94],fill=(140,160,182))
+        for wy in range(y0+98-ht,y0+90,7):
+            d.rectangle([bx+4,wy,bx+9,wy+3],fill=(214,230,244))
+            d.rectangle([bx+15,wy,bx+20,wy+3],fill=(214,230,244))
+    for i,ht in enumerate([26,44,34,58,38,28,48]):
         bx=x0+4+i*36
-        d.rectangle([bx,y1-ht,bx+28,y1],fill=(92,118,150))
-        d.rectangle([bx+2,y1-ht+2,bx+4,y1],fill=(122,150,180))
+        d.rectangle([bx,y1-ht,bx+28,y1],fill=(94,120,152))
         for wy in range(y1-ht+5,y1-6,7):
-            d.rectangle([bx+5,wy,bx+10,wy+3],fill=(226,238,248))
-            d.rectangle([bx+16,wy,bx+21,wy+3],fill=(214,230,244))
-    for cx,col in [(x0+112,(198,44,52)),(x0+162,(42,84,162)),(x0+210,(62,72,90))]:
-        d.polygon([(cx-14,y1),(cx-11,y1-24),(cx+11,y1-24),(cx+14,y1)],fill=(26,34,50))
-        d.ellipse([cx-7,y1-34,cx+7,y1-20],fill=(228,188,154))
-        d.polygon([(cx-4,y1-23),(cx+4,y1-23),(cx,y1-11)],fill=col)
-    d.rectangle([x1-48,y1-66,x1-10,y1],fill=(116,150,184))
-    for wy in range(y1-60,y1-6,8):
-        d.rectangle([x1-42,wy,x1-16,wy+3],fill=(214,234,248))
+            d.rectangle([bx+5,wy,bx+10,wy+3],fill=(224,238,248))
+            d.rectangle([bx+16,wy,bx+21,wy+3],fill=(212,228,244))
+    # the table
+    d.ellipse([x0+10,y1-48,x1-10,y1-12],fill=(34,48,66))
+    d.ellipse([x0+20,y1-44,x1-20,y1-16],fill=(58,74,94))
+    # three named leaders: United States, Russia, China
+    for cx,label,kind in [(x0+66,"US","us"),(x0+160,"RU","ru"),(x0+254,"CN","cn")]:
+        d.polygon([(cx-26,y1-12),(cx-22,y1-40),(cx+22,y1-40),(cx+26,y1-12)],
+                  fill=(30,38,54))
+        d.polygon([(cx-24,y1-40),(cx-14,y1-48),(cx+14,y1-48),(cx+24,y1-40)],
+                  fill=(42,52,70))
+        d.polygon([(cx-9,y1-39),(cx+9,y1-39),(cx+7,y1-20),(cx-7,y1-20)],
+                  fill=(240,242,246))
+        tie=(190,44,52) if kind!="cn" else (214,172,54)
+        d.polygon([(cx-3,y1-38),(cx+3,y1-38),(cx+2,y1-24),(cx,y1-19),(cx-2,y1-24)],
+                  fill=tie)
+        d.rectangle([cx-4,y1-46,cx+4,y1-36],fill=(214,170,136))
+        d.ellipse([cx-11,y1-64,cx+11,y1-40],fill=(234,190,154))
+        d.pieslice([cx-11,y1-64,cx+11,y1-46],175,365,fill=(58,54,56))
+        d.ellipse([cx-6,y1-53,cx-4,y1-51],fill=(58,52,50))
+        d.ellipse([cx+4,y1-53,cx+6,y1-51],fill=(58,52,50))
+        # name plate: small national flag plus US / RU / CN
+        d.rectangle([cx-20,y1-30,cx+20,y1-14],fill=(16,26,42))
+        d.rectangle([cx-20,y1-30,cx+20,y1-29],fill=(206,168,83))
+        fx,fy=cx-16,y1-27
+        if kind=="us":
+            d.rectangle([fx,fy,fx+12,fy+8],fill=(242,244,248))
+            for r in range(4):
+                d.rectangle([fx,fy+r*2,fx+12,fy+r*2+1],fill=(190,44,52))
+            d.rectangle([fx,fy,fx+6,fy+4],fill=(36,64,124))
+        elif kind=="ru":
+            d.rectangle([fx,fy,fx+12,fy+3],fill=(246,246,244))
+            d.rectangle([fx,fy+3,fx+12,fy+6],fill=(56,96,164))
+            d.rectangle([fx,fy+6,fx+12,fy+9],fill=(196,44,56))
+        else:
+            d.rectangle([fx,fy,fx+12,fy+9],fill=(222,42,48))
+            d.ellipse([fx+2,fy+2,fx+5,fy+5],fill=(250,214,72))
+        txt(d,cx+2,y1-26,label,F_MICRO,WHITE)
 
 def art_gulf(d,x0,y0,x1,y1):
     vg(d,x0,y0,x1,y1,(222,192,148),(250,228,190))
@@ -530,13 +558,14 @@ for k,(reg,brief) in enumerate(BRIEFS[:24]):
     txt(d,x+11,y,one_line(s,F_BRIEF,210,d),F_BRIEF,INK)
 
 # date check: only what is NOT on this page, phrased so it cannot contradict
-d.rectangle([16,974,1008,1014],fill=(250,236,236),outline=RED,width=2)
-txt(d,24,980,"DATE CHECK",f("arialbd.ttf",10),RED)
-txt(d,118,978,"NOT ON THIS PAGE AS NEWS (first reported Wed 18 Nov): Trump's red-carpet welcome; the US strike on Qeshm island;",F_TINY,(110,40,40))
-txt(d,118,990,"the Kerch bridge span; Berlin security guarantees. Friday's cyclone landfall is a forecast, not a 19 Nov event.",F_TINY,(110,40,40))
+d.rectangle([16,974,1008,1000],fill=(250,236,236),outline=RED,width=1)
+txt(d,24,977,"DATE CHECK",f("arialbd.ttf",10),RED)
+txt(d,118,976,"NOT ON THIS PAGE AS NEWS (first reported Wed 18 Nov): Trump's red-carpet welcome; the US strike on Qeshm island;",F_TINY,(110,40,40))
+txt(d,118,988,"the Kerch bridge span; Berlin security guarantees. Friday's cyclone landfall is a forecast, not a 19 Nov event.",F_TINY,(110,40,40))
 
-# footer - world clock removed; the freed space went to the map and timeline
-d.rectangle([0,1014,W,H],fill=NAVY)
+# footer - world clock removed; left as a clean band, not padded with filler
+d.rectangle([0,1000,W,H],fill=NAVY)
+d.rectangle([0,1000,W,1001],fill=(206,168,83))
 
 out=os.environ.get("MAKEFUN_OUTPUT","C:\\Users\\User\\Aws\\agent\\entry_build_1119\\preview_v2.png")
 parent=os.path.dirname(out)
