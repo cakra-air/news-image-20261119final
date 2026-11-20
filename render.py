@@ -33,6 +33,7 @@ class ScaledDraw:
     def line(self, xy, **kw): self._d.line(self._b(xy), **kw)
     def polygon(self, xy, **kw): self._d.polygon(self._xy(xy), **kw)
     def arc(self, box, a, b, **kw): self._d.arc(self._b(box), a, b, **kw)
+    def pieslice(self, box, a, b, **kw): self._d.pieslice(self._b(box), a, b, **kw)
     def text(self, xy, s, **kw): self._d.text([xy[0]*self.s, xy[1]*self.s], s, **kw)
     def textlength(self, s, **kw): return self._d.textlength(s, **kw) / self.s
     def __getattr__(self, name): return getattr(self._d, name)
@@ -93,6 +94,31 @@ def txt(d,x,y,s,ft,col):
 
 def rule(d,x0,y0,x1,y1,col,w=1): d.line([(x0,y0),(x1,y1)],fill=col,width=w)
 
+def mix(a,b,t): return tuple(int(a[k]+(b[k]-a[k])*t) for k in range(3))
+
+def vg(d,x0,y0,x1,y1,a,b,n=26):
+    """Smooth vertical gradient - gives flat art depth without any asset."""
+    for i in range(n):
+        d.rectangle([x0,y0+(y1-y0)*i/n,x1,y0+(y1-y0)*(i+1)/n+1.5],
+                    fill=mix(a,b,i/(n-1)))
+
+def glow(d,cx,cy,r,inner,outer,n=9):
+    """Soft radial highlight built from blending rings."""
+    for i in range(n,0,-1):
+        d.ellipse([cx-r*i/n,cy-r*i/n,cx+r*i/n,cy+r*i/n],
+                  fill=mix(outer,inner,1-(i-1)/n))
+
+def stars(d,x0,y0,x1,y1,n=70,seed=3):
+    st=seed
+    for _ in range(n):
+        st=(st*1103515245+12345)&0x7FFFFFFF
+        x=x0+((st>>8)%1000)/1000*(x1-x0)
+        st=(st*1103515245+12345)&0x7FFFFFFF
+        y=y0+((st>>8)%1000)/1000*(y1-y0)
+        st=(st*1103515245+12345)&0x7FFFFFFF
+        s=0.5+((st>>8)%1000)/1000*1.3
+        d.ellipse([x,y,x+s,y+s],fill=(198,216,240))
+
 def badge(d,x,y,n,col,size=12):
     d.ellipse([x,y,x+size,y+size],fill=col)
     s=str(n); tw=tlen(d,s,F_MICRO)
@@ -100,147 +126,209 @@ def badge(d,x,y,n,col,size=12):
 
 # ---------- illustrations (flat, deterministic, no external assets) ----------
 def art_shenzhen(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(226,236,244))
-    d.ellipse([x1-64,y0+8,x1-24,y0+48],fill=(244,176,72))
-    for i,ht in enumerate([28,48,36,66,42,30,54]):
-        bx=x0+18+i*32
-        d.rectangle([bx,y1-30-ht,bx+22,y1-30],fill=(150,168,186))
-        for wy in range(y1-26-ht,y1-34,8):
-            d.rectangle([bx+4,wy,bx+8,wy+3],fill=(190,208,224))
-            d.rectangle([bx+13,wy,bx+17,wy+3],fill=(190,208,224))
-    d.polygon([(x0+10,y0+8),(x0+66,y0+18),(x0+50,y0+26),(x0+28,y0+30),(x0+10,y0+24)],fill=(70,92,126))
-    d.rectangle([x0+16,y0+22,x0+56,y0+26],fill=(70,92,126))
-    for cx,col in [(x0+120,(206,32,42)),(x0+166,(30,70,150)),(x0+212,(40,44,54))]:
-        d.rectangle([cx-8,y1-52,cx+8,y1-30],fill=col)
-        d.ellipse([cx-6,y1-64,cx+6,y1-52],fill=(220,178,146))
-    # a glass tower instead of the old red-and-yellow stripes (it read as a flag)
-    d.rectangle([x1-54,y1-74,x1-12,y1-30],fill=(120,150,180))
-    for wy in range(y1-68,y1-34,8):
-        d.rectangle([x1-48,wy,x1-18,wy+3],fill=(196,216,234))
+    vg(d,x0,y0,x1,y1,(204,226,244),(250,216,170))
+    glow(d,x1-46,y0+26,34,(255,238,176),(244,222,180))
+    d.ellipse([x1-58,y0+14,x1-34,y0+38],fill=(248,194,88))
+    d.polygon([(x0,y0+52),(x0+52,y0+24),(x0+96,y0+46),(x0+152,y0+18),
+               (x1,y0+42),(x1,y0+82),(x0,y0+82)],fill=(178,196,214))
+    d.polygon([(x0,y0+68),(x0+72,y0+40),(x0+142,y0+62),(x1,y0+50),
+               (x1,y0+98),(x0,y0+98)],fill=(146,170,194))
+    d.rectangle([x0,y0+96,x1,y1],fill=(124,160,192))
+    for k in range(6):
+        d.rectangle([x0+12+k*3,y0+101+k*6,x1-18-k*5,y0+102+k*6],
+                    fill=mix((124,160,192),(250,216,170),0.32))
+    for i,ht in enumerate([22,38,30,52,34,26,44]):
+        bx=x0+8+i*34
+        d.rectangle([bx,y0+96-ht,bx+26,y0+96],fill=(138,158,180))
+        for wy in range(y0+100-ht,y0+92,7):
+            d.rectangle([bx+4,wy,bx+9,wy+3],fill=(210,226,240))
+            d.rectangle([bx+15,wy,bx+20,wy+3],fill=(210,226,240))
+    for i,ht in enumerate([30,52,40,70,46,34,58]):
+        bx=x0+4+i*36
+        d.rectangle([bx,y1-ht,bx+28,y1],fill=(92,118,150))
+        d.rectangle([bx+2,y1-ht+2,bx+4,y1],fill=(122,150,180))
+        for wy in range(y1-ht+5,y1-6,7):
+            d.rectangle([bx+5,wy,bx+10,wy+3],fill=(226,238,248))
+            d.rectangle([bx+16,wy,bx+21,wy+3],fill=(214,230,244))
+    for cx,col in [(x0+112,(198,44,52)),(x0+162,(42,84,162)),(x0+210,(62,72,90))]:
+        d.polygon([(cx-14,y1),(cx-11,y1-24),(cx+11,y1-24),(cx+14,y1)],fill=(26,34,50))
+        d.ellipse([cx-7,y1-34,cx+7,y1-20],fill=(228,188,154))
+        d.polygon([(cx-4,y1-23),(cx+4,y1-23),(cx,y1-11)],fill=col)
+    d.rectangle([x1-48,y1-66,x1-10,y1],fill=(116,150,184))
+    for wy in range(y1-60,y1-6,8):
+        d.rectangle([x1-42,wy,x1-16,wy+3],fill=(214,234,248))
 
 def art_gulf(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(226,204,166))
-    d.polygon([(x0+40,y0+30),(x1-10,y0+12),(x1,y1),(x0+70,y1)],fill=(64,116,150))
-    txt(d,x0+12,y0+10,"KUWAIT",F_MICRO,(110,80,50))
-    d.polygon([(x0+10,y0+18),(x0+70,y0+8),(x0+82,y0+40),(x0+22,y0+48)],fill=(206,186,140))
-    d.polygon([(x0+84,y1-44),(x0+124,y1-52),(x0+132,y1-16),(x0+92,y1-10)],fill=(210,190,146))
-    d.line([(x1-40,y0+24),(x0+96,y1-30)],fill=RED,width=2)
-    for t in range(4):
-        px=x1-40+(x0+96-(x1-40))*t/4; py=y0+24+(y1-30-y0-24)*t/4
-        d.ellipse([px-3,py-3,px+3,py+3],fill=RED)
-    for cx,cy in [(x0+78,y1-30),(x0+112,y0+34)]:
-        for r,c in [(9,(244,140,40)),(5,(255,220,90))]:
-            d.ellipse([cx-r,cy-r,cx+r,cy+r],fill=c)
+    vg(d,x0,y0,x1,y1,(222,192,148),(250,228,190))
+    glow(d,x0+72,y0+38,36,(255,236,166),(242,216,174))
+    d.polygon([(x0,y0+58),(x0+72,y0+28),(x0+152,y0+56),(x1,y0+40),
+               (x1,y0+92),(x0,y0+92)],fill=(214,184,138))
+    d.polygon([(x0,y0+78),(x0+92,y0+50),(x0+184,y0+76),(x1,y0+64),
+               (x1,y1),(x0,y1)],fill=(196,162,118))
+    d.rectangle([x0+18,y0+94,x1-10,y1-6],fill=(172,154,128))
+    d.line([(x0+30,y1-14),(x1-24,y1-14)],fill=(238,232,216),width=2)
+    for bx in (x0+24,x0+96,x0+168):
+        d.rectangle([bx,y0+98,bx+44,y0+120],fill=(142,136,128))
+        d.polygon([(bx-3,y0+98),(bx+22,y0+86),(bx+47,y0+98)],fill=(170,162,150))
+    d.line([(x1-46,y1-14),(x1-46,y0+54)],fill=(72,78,84),width=2)
+    d.pieslice([x1-70,y0+30,x1-22,y0+78],195,345,
+               fill=(98,106,114),outline=(66,72,80),width=2)
+    d.line([(x1-44,y0+30),(x0+96,y1-20)],fill=(240,166,86),width=5)
+    d.line([(x1-44,y0+30),(x0+96,y1-20)],fill=(190,28,44),width=2)
+    glow(d,x1-44,y0+30,17,(255,216,112),(242,192,152))
+    for cx,cy in [(x0+96,y1-20),(x0+126,y0+44)]:
+        glow(d,cx,cy,15,(255,218,112),(244,200,158))
+        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(255,246,204))
+    txt(d,x0+10,y0+8,"KUWAIT",F_MICRO,(118,84,50))
 
 def art_space(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(10,22,48))
-    for i in range(40):
-        sx=x0+(i*37)%(x1-x0); sy=y0+(i*53)%(y1-y0)
-        d.ellipse([sx,sy,sx+1,sy+1],fill=(180,200,230))
-    d.ellipse([x0+16,y0+30,x0+76,y0+90],fill=(56,132,196))
-    d.ellipse([x0+26,y0+34,x0+60,y0+68],fill=(86,160,110))
-    d.arc([x0+8,y0+22,x0+84,y0+98],20,160,fill=(150,200,240),width=2)
+    vg(d,x0,y0,x1,y1,(8,18,44),(24,44,78))
+    stars(d,x0,y0,x1,y1,90,11)
+    glow(d,x0+46,y0+62,44,(88,168,230),(16,34,66))
+    d.ellipse([x0+16,y0+32,x0+76,y0+92],fill=(54,128,196))
+    d.ellipse([x0+24,y0+36,x0+64,y0+76],fill=(86,162,112))
+    d.ellipse([x0+30,y0+40,x0+52,y0+62],fill=(116,184,132))
+    d.arc([x0+8,y0+24,x0+84,y0+100],18,162,fill=(164,212,244),width=2)
     px,py=x1-56,y0+54
-    d.ellipse([px-22,py-16,px+6,py+12],outline=(220,226,236),width=3)
-    d.line([(px+6,py-2),(px+24,py-8)],fill=(200,210,225),width=3)
-    d.rectangle([px+22,py-16,px+40,py+2],fill=(180,190,210))
-    d.line([(px+26,py-16),(px+26,py-30)],fill=(180,190,210),width=2)
-    d.line([(x0+76,y0+60),(px-22,py+2)],fill=GOLD,width=1)
+    d.rectangle([px+22,py-16,px+40,py+2],fill=(186,196,216))
+    d.line([(px+25,py-13),(px+37,py-13)],fill=(220,230,244),width=1)
+    d.line([(px+25,py-7),(px+37,py-7)],fill=(220,230,244),width=1)
+    d.ellipse([px-22,py-16,px+6,py+12],outline=(226,232,242),width=3)
+    d.line([(px+6,py-2),(px+24,py-8)],fill=(206,216,230),width=3)
+    d.line([(px+26,py-16),(px+26,py-30)],fill=(186,196,216),width=2)
+    d.line([(x0+76,y0+62),(px-22,py+2)],fill=GOLD,width=2)
+    d.ellipse([x0+72,y0+58,x0+80,y0+66],fill=(255,232,150))
     txt(d,x0+92,y0+16,"1 LIGHT-DAY",f("arialbd.ttf",15),GOLD)
     txt(d,x0+96,y0+38,"25.9 billion km from Earth",F_MICRO,(214,226,244))
     txt(d,x0+96,y0+52,"a radio signal takes 24 hours",F_MICRO,(214,226,244))
 
 def art_drones(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(16,32,60))
+    vg(d,x0,y0,x1,y1,(12,26,54),(36,58,92))
+    stars(d,x0,y0,x1,y1,45,5)
     for i,ht in enumerate([20,34,26,40,18]):
-        bx=x0+10+i*46; d.rectangle([bx,y1-24-ht,bx+30,y1-24],fill=(44,64,96))
+        bx=x0+10+i*46
+        d.rectangle([bx,y1-24-ht,bx+30,y1-24],fill=(40,60,92))
+        d.rectangle([bx+2,y1-22-ht,bx+4,y1-24],fill=(78,104,140))
+        for wy in range(y1-22-ht,y1-28,7):
+            d.rectangle([bx+6,wy,bx+10,wy+2],fill=(232,204,120))
+            d.rectangle([bx+18,wy,bx+22,wy+2],fill=(232,204,120))
+    d.line([(x1-10,y0+10),(x0+60,y1-28)],fill=(238,110,44),width=4)
     d.line([(x1-10,y0+10),(x0+60,y1-28)],fill=RED,width=2)
     for cx,cy in [(x0+70,y1-30),(x1-40,y0+20)]:
-        for r,c in [(10,(238,110,40)),(5,(255,220,90))]: d.ellipse([cx-r,cy-r,cx+r,cy+r],fill=c)
-    d.polygon([(x0+150,y0+8),(x0+172,y0+4),(x0+168,y0+18),(x0+148,y0+20)],fill=(230,236,244))
+        glow(d,cx,cy,14,(255,220,110),(200,70,60))
+        d.ellipse([cx-3,cy-3,cx+3,cy+3],fill=(255,242,196))
+    d.polygon([(x0+150,y0+8),(x0+172,y0+4),(x0+168,y0+18),(x0+148,y0+20)],fill=(232,238,248))
+    d.line([(x0+158,y0+10),(x0+162,y0+18)],fill=(150,160,180),width=1)
 
 def art_eu(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(236,242,248))
-    d.rectangle([x0,y0,x1,y0+30],fill=(36,66,140))
+    vg(d,x0,y0,x1,y1,(240,245,250),(214,226,240))
+    d.rectangle([x0,y0,x1,y0+30],fill=(32,62,138))
     import math
-    for i in range(7):
-        a=2*math.pi*i/7
-        cx=x0+58+16*math.cos(a); cy=y0+16+12*math.sin(a)
-        d.ellipse([cx-3,cy-3,cx+3,cy+3],fill=GOLD)
-    d.rectangle([x0+128,y0+4,x0+196,y0+28],fill=(255,220,60))
-    d.rectangle([x0+128,y0+17,x0+196,y0+28],fill=(36,66,120))
+    for i in range(12):
+        a=2*math.pi*i/12
+        cx=x0+58+18*math.cos(a); cy=y0+16+13*math.sin(a)
+        d.ellipse([cx-2,cy-2,cx+2,cy+2],fill=(250,214,72))
+    d.rectangle([x0+128,y0+4,x0+196,y0+28],fill=(252,220,64))
+    d.rectangle([x0+128,y0+17,x0+196,y0+28],fill=(32,62,126))
+    d.polygon([(x0+16,y1),(x0+52,y0+38),(x0+88,y1)],fill=(182,196,212))
+    d.rectangle([x0+42,y1-14,x0+62,y1],fill=(148,164,184))
+    for wy in range(y0+36,y1-14,8):
+        d.rectangle([x0+98,wy,x1-12,wy+3],fill=(196,210,226))
 
 def art_court(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(238,232,216))
+    vg(d,x0,y0,x1,y1,(242,236,220),(214,204,184))
+    d.polygon([(x0+12,y0+18),(x0+108,y0+6),(x0+204,y0+18)],fill=(168,150,124))
     for i in range(4):
-        d.rectangle([x0+26+i*42,y0+16,x0+38+i*42,y1-8],fill=(160,142,116))
+        bx=x0+26+i*42
+        d.rectangle([bx,y0+16,bx+12,y1-8],fill=(164,146,120))
+        d.rectangle([bx+1,y0+17,bx+3,y1-9],fill=(196,180,152))
     d.rectangle([x0+18,y1-14,x1-14,y1-8],fill=(138,120,96))
-    # scales of justice
-    cx=x1-48; cy=y0+26
-    d.line([(cx,cy),(cx,cy+26)],fill=(70,64,54),width=2)
-    d.line([(cx-22,cy),(cx+22,cy)],fill=(70,64,54),width=2)
+    cx=x1-48; cy=y0+28
+    d.line([(cx,cy),(cx,cy+26)],fill=(64,58,48),width=2)
+    d.line([(cx-22,cy),(cx+22,cy)],fill=(64,58,48),width=2)
     for sx in (cx-22,cx+22):
-        d.line([(sx,cy),(sx,cy+10)],fill=(70,64,54),width=1)
-        d.ellipse([sx-7,cy+10,sx+7,cy+22],outline=(70,64,54),width=2)
+        d.line([(sx,cy),(sx,cy+10)],fill=(64,58,48),width=1)
+        d.ellipse([sx-7,cy+10,sx+7,cy+22],outline=(64,58,48),width=2)
+    d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(196,168,72))
 
 def art_game(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(108,52,140))
-    d.ellipse([x0+70,y0+10,x0+170,y0+52],fill=(240,244,250))
+    vg(d,x0,y0,x1,y1,(126,58,164),(86,36,120))
+    glow(d,x0+120,y0+26,25,(198,110,220),(120,52,158))
+    d.ellipse([x0+70,y0+8,x0+170,y0+52],fill=(244,246,250))
+    d.ellipse([x0+74,y0+11,x0+166,y0+48],outline=(206,212,226),width=1)
     for cx,cy in [(x0+94,y0+26),(x0+146,y0+26)]:
-        d.rectangle([cx-10,cy-4,cx+10,cy+4],fill=(120,60,150))
-        d.rectangle([cx-2,cy-12,cx+2,cy+12],fill=(120,60,150))
-    for cx,cy in [(x0+96,y0+42),(x0+112,y0+36),(x0+130,y0+36),(x0+146,y0+42)]:
-        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(220,80,120))
+        d.rectangle([cx-10,cy-4,cx+10,cy+4],fill=(116,56,148))
+        d.rectangle([cx-2,cy-12,cx+2,cy+12],fill=(116,56,148))
+    for k,(cx,cy) in enumerate([(x0+96,y0+42),(x0+112,y0+36),(x0+130,y0+36),(x0+146,y0+42)]):
+        c=[(220,80,120),(240,180,60),(80,170,220),(120,200,120)][k]
+        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=c)
     txt(d,x0+8,y0+40,"ON SALE AFTER 13 YEARS",F_MICRO,WHITE)
 
 def art_energy(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(250,236,206))
+    vg(d,x0,y0,x1,y1,(252,240,212),(240,214,168))
+    glow(d,x1-28,y0+24,22,(255,236,160),(250,224,178))
     d.ellipse([x1-46,y0+8,x1-10,y0+42],fill=(244,176,72))
-    d.line([(x0+30,y1-8),(x0+30,y0+14)],fill=(70,74,82),width=3)
-    d.polygon([(x0+30,y0+14),(x0+48,y1-8),(x0+12,y1-8)],fill=(92,98,110))
+    d.line([(x0+30,y1-8),(x0+30,y0+14)],fill=(66,72,80),width=3)
+    d.polygon([(x0+30,y0+14),(x0+48,y1-8),(x0+12,y1-8)],fill=(90,96,108))
     for k in range(3):
-        d.line([(x0+20+k*10,y1-12),(x0+40+k*10,y0+26)],fill=(150,156,166),width=1)
-    d.line([(x0+64,y1-12),(x1-8,y1-12)],fill=(36,96,150),width=3)
+        d.line([(x0+20+k*10,y1-12),(x0+40+k*10,y0+26)],fill=(152,158,168),width=1)
+    d.line([(x0+64,y1-12),(x1-8,y1-12)],fill=(32,92,148),width=4)
     for k in range(3):
-        d.arc([x0+72+k*36,y1-22,x0+104+k*36,y1-2],200,340,fill=(36,96,150),width=2)
+        d.arc([x0+72+k*36,y1-24,x0+104+k*36,y1-2],200,340,fill=(32,92,148),width=2)
 
 def art_fed(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(238,242,244))
-    d.polygon([(x0+18,y0+34),(x0+40,y0+18),(x0+62,y0+34)],fill=(120,130,145))
-    for i in range(4): d.rectangle([x0+20+i*12,y0+34,x0+27+i*12,y0+52],fill=(150,158,170))
-    d.rectangle([x0+14,y0+52,x0+68,y0+57],fill=(120,130,145))
+    vg(d,x0,y0,x1,y1,(242,245,248),(218,228,236))
+    d.polygon([(x0+18,y0+34),(x0+40,y0+18),(x0+62,y0+34)],fill=(116,128,142))
+    for i in range(4):
+        d.rectangle([x0+20+i*12,y0+34,x0+27+i*12,y0+52],fill=(152,160,172))
+        d.rectangle([x0+21+i*12,y0+35,x0+23+i*12,y0+51],fill=(186,194,204))
+    d.rectangle([x0+14,y0+52,x0+68,y0+57],fill=(116,128,142))
     d.line([(x0+86,y0+16),(x0+120,y0+28),(x0+146,y0+22),(x1-8,y0+40)],fill=RED,width=3)
+    d.polygon([(x1-8,y0+40),(x1-18,y0+34),(x1-18,y0+46)],fill=RED)
     txt(d,x0+82,y0+40,"MORE HIKES",F_SM,RED)
 
 def art_cyclone(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(214,234,242))
-    d.polygon([(x0+10,y0+10),(x0+130,y0+24),(x0+110,y1),(x0,y1)],fill=(206,220,214))
-    txt(d,x0+12,y0+6,"INDIA",F_MICRO,(70,90,70))
-    txt(d,x0+46,y0+22,"ODISHA",F_MICRO,(60,80,60))
-    for r in range(6,24,4):
-        d.arc([x1-60-r,y0+26-r,x1-60+r,y0+26+r],r*8,r*8+220,fill=(40,100,150),width=2)
+    vg(d,x0,y0,x1,y1,(208,232,242),(236,244,240))
+    d.polygon([(x0+10,y0+10),(x0+130,y0+24),(x0+110,y1),(x0,y1)],fill=(202,218,212))
+    txt(d,x0+12,y0+6,"INDIA",F_MICRO,(66,86,66))
+    txt(d,x0+46,y0+22,"ODISHA",F_MICRO,(56,76,56))
+    glow(d,x1-60,y0+26,26,(150,206,236),(214,234,242))
+    for r in (6,10,14,18,22):
+        d.arc([x1-60-r,y0+26-r,x1-60+r,y0+26+r],r*8,r*8+220,
+              fill=(36,96,148),width=2)
+    d.ellipse([x1-64,y0+22,x1-56,y0+30],fill=(24,72,124))
 
 def art_sudan(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(238,204,166))
-    for i in range(5): d.rectangle([x0+12+i*44,y1-30,x0+34+i*44,y1-10],fill=(160,120,84))
+    vg(d,x0,y0,x1,y1,(240,208,168),(222,180,136))
+    for i in range(5):
+        d.rectangle([x0+12+i*44,y1-30,x0+34+i*44,y1-10],fill=(158,118,82))
+        d.rectangle([x0+13+i*44,y1-29,x0+16+i*44,y1-11],fill=(190,150,110))
     for cx,cy in [(x0+120,y0+24),(x0+60,y0+18)]:
-        for r,c in [(12,(226,90,36)),(6,(255,214,90))]: d.ellipse([cx-r,cy-r,cx+r,cy+r],fill=c)
+        glow(d,cx,cy,16,(255,222,110),(238,196,150))
+        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(255,242,196))
     d.line([(x1-10,y0+10),(x0+120,y0+24)],fill=RED,width=2)
 
 def art_gaza(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(204,232,240))
+    vg(d,x0,y0,x1,y1,(198,228,240),(224,234,210))
     d.rectangle([x0,y0+18,x1,y1],fill=(212,226,204))
-    d.line([(x0+20,y0+34),(x1-20,y0+34)],fill=RED,width=2)
-    d.rectangle([x1-70,y0+4,x1-20,y0+24],fill=(226,196,60))
+    for i in range(5):
+        d.rectangle([x0+16+i*40,y0+20,x0+38+i*40,y0+38],fill=(190,204,180))
+    d.line([(x0+20,y0+34),(x1-20,y0+34)],fill=RED,width=3)
+    d.rectangle([x1-70,y0+4,x1-20,y0+24],fill=(232,202,64))
     txt(d,x1-66,y0+8,"YELLOW LINE",F_MICRO,(80,70,30))
-    d.polygon([(x0+40,y0+40),(x0+76,y0+40),(x0+84,y1-4),(x0+34,y1-4)],fill=(90,100,78))
+    d.polygon([(x0+40,y0+42),(x0+76,y0+42),(x0+84,y1-4),(x0+34,y1-4)],fill=(86,98,74))
+    d.ellipse([x0+46,y0+44,x0+58,y0+52],fill=(120,132,102))
 
 def art_capitol(d,x0,y0,x1,y1):
-    d.rectangle([x0,y0,x1,y1],fill=(236,240,244))
-    d.ellipse([x0+88,y0+4,x0+134,y0+40],fill=(150,158,170))
-    d.rectangle([x0+82,y0+34,x0+140,y0+46],fill=(150,158,170))
-    for i in range(4): d.rectangle([x0+16+i*36,y0+40,x0+30+i*36,y0+54],fill=(170,176,186))
-    d.rectangle([x0+8,y0-8+52,x1-8,y1-8],fill=(150,158,170))
+    vg(d,x0,y0,x1,y1,(240,244,248),(214,224,234))
+    glow(d,x0+111,y0+22,20,(206,216,232),(238,242,246))
+    d.ellipse([x0+88,y0+4,x0+134,y0+40],fill=(148,158,172))
+    d.arc([x0+88,y0+4,x0+134,y0+40],180,360,fill=(196,204,216),width=2)
+    d.rectangle([x0+82,y0+34,x0+140,y0+46],fill=(148,158,172))
+    for i in range(4):
+        d.rectangle([x0+16+i*36,y0+40,x0+30+i*36,y0+54],fill=(168,176,188))
+        d.rectangle([x0+17+i*36,y0+41,x0+20+i*36,y0+53],fill=(200,208,220))
+    d.rectangle([x0+8,y0+44,x1-8,y1-8],fill=(148,158,172))
 
 def draw_world_map(d,x0,y0,x1,y1):
     """Small, clear world map with the 11 story locations numbered 1-11."""
@@ -387,23 +475,27 @@ for i,(reg,tag,src,venue,banner,head,cap,art) in enumerate(LEADS):
     for ln in wrap(cap,F_CAP,LW-14,d)[:2]: txt(d,x0+7,y,ln,F_CAP,(70,76,90)); y+=14
     d.rectangle([x0,126,x1,424],outline=GRAY,width=1)
 
-# UTC timeline ------------------------------------------------------------
-d.rectangle([16,428,1008,446],fill=(232,236,242))
-txt(d,22,430,"UTC TIMELINE",f("arialbd.ttf",10),NAVY)
-tl=[("00",RED,"Gulf strikes"),("06",BLUE,"Berlin"),("09",PURPLE,"Shenzhen"),
-    ("13",GREEN,"Wall St opens"),("18",ORANGE,"NSA down"),("23",TEAL,"NZ launch")]
-tx=124
-for hh,col,label in tl:
-    d.ellipse([tx,433,tx+8,441],fill=col)
-    txt(d,tx+12,428,f"{hh}:00",f("arialbd.ttf",10),NAVY)
-    txt(d,tx+12,437,label,f("arialbd.ttf",10),(60,66,80))
-    tx+=148
+# UTC timeline - taller, ruled, bold hours so it reads at a glance --------
+d.rectangle([16,426,1008,466],fill=(234,238,244),outline=GRAY,width=1)
+txt(d,22,430,"UTC TIMELINE",f("arialbd.ttf",11),NAVY)
+txt(d,22,445,"19 NOV",f("arialbd.ttf",9),GRAY)
+rule(d,150,446,982,446,(146,154,166),2)
+tl=[("00:00",RED,"Gulf strikes"),("06:00",BLUE,"Berlin talks"),
+    ("09:00",PURPLE,"Shenzhen summit"),("13:00",GREEN,"Wall St opens"),
+    ("18:00",ORANGE,"NSA network down"),("23:00",TEAL,"NZ game launch")]
+for i,(hh,col,label) in enumerate(tl):
+    tx=150+i*166
+    d.ellipse([tx-6,440,tx+6,452],fill=col,outline=WHITE,width=2)
+    hw=tlen(d,hh,F_REG)/2
+    txt(d,tx-hw,429,hh,F_REG,NAVY)
+    lw=tlen(d,label,F_MICRO)/2
+    txt(d,tx-lw,454,label,F_MICRO,(56,62,76))
 
 # eight illustrated cards -------------------------------------------------
-CW=(992-24)//4; CH=140
+CW=(992-24)//4; CH=138
 for j,(n,reg,tag,src,banner,head,cap,art) in enumerate(CARDS):
     col=j%4; row=j//4
-    x0=16+col*(CW+8); y0=450+row*(CH+6); x1=x0+CW; y1=y0+CH
+    x0=16+col*(CW+8); y0=470+row*(CH+6); x1=x0+CW; y1=y0+CH
     art(d,x0,y0,x1,y0+52)
     d.rectangle([x0,y0+40,x1,y0+62],fill=NAVY)
     tw=tlen(d,banner,F_MICRO); txt(d,x0+(CW-tw)/2,y0+45,banner,F_MICRO,WHITE)
@@ -416,38 +508,35 @@ for j,(n,reg,tag,src,banner,head,cap,art) in enumerate(CARDS):
     d.rectangle([x0,y0,x1,y1],outline=GRAY,width=1)
 
 # the day in numbers: large, readable, no micro-table ---------------------
-d.rectangle([16,742,1008,788],fill=(238,241,246),outline=GRAY,width=1)
-txt(d,24,747,"THE DAY IN NUMBERS · 19 NOV",f("arialbd.ttf",9),NAVY)
+d.rectangle([16,756,1008,802],fill=(238,241,246),outline=GRAY,width=1)
+txt(d,24,761,"THE DAY IN NUMBERS · 19 NOV",f("arialbd.ttf",9),NAVY)
 stats=[(228,"$94bn","ANTHROPIC IPO VALUATION"),(398,"28.4%","AMAZON + GOOGLE STAKE"),
        (568,"200,000","EVACUATED AHEAD OF AKVAN"),(744,"5,568","DRC EBOLA DEAD"),
        (886,"24,418","NASDAQ CLOSE +0.37%")]
 for x,big,lab in stats:
-    txt(d,x,746,big,F_STAT,RED)
-    txt(d,x,775,lab,F_MICRO,(80,86,100))
+    txt(d,x,760,big,F_STAT,RED)
+    txt(d,x,789,lab,F_MICRO,(80,86,100))
 
 # also on thursday: small world map + 24 short briefs in three columns ----
-d.rectangle([16,794,1008,814],fill=NAVY)
-txt(d,24,798,"WHERE IT HAPPENED  /  ALSO ON THURSDAY",f("arialbd.ttf",10),GOLD)
-txt(d,700,798,"24 MORE STORIES · 19 NOV 2026",F_MICRO,(206,220,240))
-draw_world_map(d,16,820,306,964)
+d.rectangle([16,808,1008,828],fill=NAVY)
+txt(d,24,812,"WHERE IT HAPPENED  /  ALSO ON THURSDAY",f("arialbd.ttf",10),GOLD)
+txt(d,700,812,"24 MORE STORIES · 19 NOV 2026",F_MICRO,(206,220,240))
+draw_world_map(d,16,832,306,970)
 for k,(reg,brief) in enumerate(BRIEFS[:24]):
     col=k//8; row=k%8
-    x=322+col*230; y=820+row*19
+    x=322+col*230; y=832+row*17
     d.ellipse([x,y+1,x+6,y+7],fill=REGCOL[reg])
     s=f"{k+1:02d} · "+brief
     txt(d,x+11,y,one_line(s,F_BRIEF,210,d),F_BRIEF,INK)
 
 # date check: only what is NOT on this page, phrased so it cannot contradict
-d.rectangle([16,968,1008,994],fill=(250,236,236),outline=RED,width=2)
-txt(d,24,973,"DATE CHECK",f("arialbd.ttf",10),RED)
-txt(d,118,971,"NOT ON THIS PAGE AS NEWS (first reported Wed 18 Nov): Trump's red-carpet welcome; the US strike on Qeshm island;",F_TINY,(110,40,40))
-txt(d,118,982,"the Kerch bridge span; Berlin security guarantees. Friday's cyclone landfall is a forecast, not a 19 Nov event.",F_TINY,(110,40,40))
+d.rectangle([16,974,1008,1014],fill=(250,236,236),outline=RED,width=2)
+txt(d,24,980,"DATE CHECK",f("arialbd.ttf",10),RED)
+txt(d,118,978,"NOT ON THIS PAGE AS NEWS (first reported Wed 18 Nov): Trump's red-carpet welcome; the US strike on Qeshm island;",F_TINY,(110,40,40))
+txt(d,118,990,"the Kerch bridge span; Berlin security guarantees. Friday's cyclone landfall is a forecast, not a 19 Nov event.",F_TINY,(110,40,40))
 
-# footer ------------------------------------------------------------------
-d.rectangle([0,996,W,H],fill=NAVY)
-txt(d,16,1000,"WORLD CLOCK · UTC",f("arialbd.ttf",10),GOLD)
-txt(d,130,999,"00:00 UTC  ·  19:00 NEW YORK (18 NOV)  ·  00:00 LONDON  ·  05:30 KOLKATA",f("arialbd.ttf",10),WHITE)
-txt(d,130,1012,"08:00 SHENZHEN  ·  09:00 TOKYO  ·  11:00 SYDNEY  ·  the date changes first in the west",f("arialbd.ttf",10),(216,228,244))
+# footer - world clock removed; the freed space went to the map and timeline
+d.rectangle([0,1014,W,H],fill=NAVY)
 
 out=os.environ.get("MAKEFUN_OUTPUT","C:\\Users\\User\\Aws\\agent\\entry_build_1119\\preview_v2.png")
 parent=os.path.dirname(out)
