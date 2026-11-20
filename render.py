@@ -134,25 +134,16 @@ def art_shenzhen(d,x0,y0,x1,y1):
         d.rectangle([bx,y0+6,bx+42,y0+74],fill=(34,56,88))
         d.rectangle([bx+2,y0+8,bx+4,y0+72],fill=(66,92,128))
         d.rectangle([bx+38,y0+8,bx+40,y0+72],fill=(22,40,68))
-    # three large national flags behind the leaders
-    def big_flag(fx,fy,style):
-        d.line([(fx,fy-3),(fx,fy+48)],fill=(198,206,218),width=2)
-        d.ellipse([fx-2,fy-5,fx+2,fy-1],fill=(226,190,96))
-        if style=="us":
-            d.rectangle([fx+2,fy,fx+42,fy+28],fill=(240,242,246))
-            for r in range(7):
-                d.rectangle([fx+2,fy+r*4,fx+42,fy+r*4+2],fill=(186,44,56))
-            d.rectangle([fx+2,fy,fx+20,fy+16],fill=(36,64,124))
-        elif style=="ru":
-            d.rectangle([fx+2,fy,fx+42,fy+10],fill=(246,246,244))
-            d.rectangle([fx+2,fy+10,fx+42,fy+20],fill=(56,96,164))
-            d.rectangle([fx+2,fy+20,fx+42,fy+30],fill=(196,44,56))
-        else:
-            d.rectangle([fx+2,fy,fx+42,fy+30],fill=(218,40,48))
-            d.ellipse([fx+8,fy+8,fx+18,fy+18],fill=(250,214,72))
-    big_flag(x0+48,y0+30,"us")
-    big_flag(x0+142,y0+30,"ru")
-    big_flag(x0+236,y0+30,"cn")
+    # a row of APEC flags along the wall - national flags already sit on the
+    # leaders' name plates, so they are not repeated here
+    def apec_flag(fx,fy,w=36,h=24):
+        d.line([(fx,fy-2),(fx,fy+44)],fill=(198,206,218),width=2)
+        d.ellipse([fx-2,fy-4,fx+2,fy],fill=(226,190,96))
+        d.rectangle([fx+2,fy,fx+2+w,fy+h],fill=(42,104,168))
+        d.ellipse([fx+7,fy+5,fx+15,fy+13],outline=(232,240,248),width=1)
+        txt(d,fx+18,fy+7,"APEC",f("arialbd.ttf",8),WHITE)
+    for k in range(6):
+        apec_flag(x0+18+k*48,y0+30)
     # APEC summit banner across the top
     d.rectangle([x0+18,y0+8,x1-18,y0+26],fill=(42,104,168))
     d.rectangle([x0+18,y0+8,x1-18,y0+9],fill=(232,190,96))
