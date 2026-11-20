@@ -9,11 +9,13 @@ v3 changes after the 98.3% verdict and the improvement target of 99%:
   - v3: stronger headline scale and tighter captions so the page reads as one
        coherent news front page instead of a dense layout; same content, same art.
 """
+import io
+import math
 import os
 from PIL import Image, ImageDraw, ImageFont
 
 W = H = 1024
-S = 2  # supersampling: draw at 2x, downsample with LANCZOS for crisp 1024 output
+S = 3  # supersampling: draw at 3x, downsample with LANCZOS for crisp 1024 output
 FD = r"C:\Windows\Fonts"
 def f(n, s): return ImageFont.truetype(os.path.join(FD, n), s * S)
 
@@ -107,6 +109,22 @@ def glow(d,cx,cy,r,inner,outer,n=9):
     for i in range(n,0,-1):
         d.ellipse([cx-r*i/n,cy-r*i/n,cx+r*i/n,cy+r*i/n],
                   fill=mix(outer,inner,1-(i-1)/n))
+
+def make_noise(w,h,seed=8675309):
+    """Deterministic newsprint grain, -1..1, shared by every amplitude trial."""
+    st,out=seed,[]
+    for _ in range(w*h):
+        st=(st*1103515245+12345)&0x7FFFFFFF
+        out.append(((st>>9)%2049-1024)/1024.0)
+    return out
+
+def apply_grain(base,noise,amp):
+    out=base.copy(); px=out.load(); i=0
+    for y in range(out.height):
+        for x in range(out.width):
+            r,g,b=px[x,y]; n=int(noise[i]*amp); i+=1
+            px[x,y]=(min(255,max(0,r+n)),min(255,max(0,g+n)),min(255,max(0,b+n)))
+    return out
 
 def stars(d,x0,y0,x1,y1,n=70,seed=3):
     st=seed
@@ -231,26 +249,29 @@ def art_gulf(d,x0,y0,x1,y1):
         d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(255,246,204))
     txt(d,x0+10,y0+8,"KUWAIT",F_MICRO,(118,84,50))
 
-def art_space(d,x0,y0,x1,y1):
-    vg(d,x0,y0,x1,y1,(8,18,44),(24,44,78))
-    stars(d,x0,y0,x1,y1,90,11)
-    glow(d,x0+46,y0+62,44,(88,168,230),(16,34,66))
-    d.ellipse([x0+16,y0+32,x0+76,y0+92],fill=(54,128,196))
-    d.ellipse([x0+24,y0+36,x0+64,y0+76],fill=(86,162,112))
-    d.ellipse([x0+30,y0+40,x0+52,y0+62],fill=(116,184,132))
-    d.arc([x0+8,y0+24,x0+84,y0+100],18,162,fill=(164,212,244),width=2)
-    px,py=x1-56,y0+54
-    d.rectangle([px+22,py-16,px+40,py+2],fill=(186,196,216))
-    d.line([(px+25,py-13),(px+37,py-13)],fill=(220,230,244),width=1)
-    d.line([(px+25,py-7),(px+37,py-7)],fill=(220,230,244),width=1)
-    d.ellipse([px-22,py-16,px+6,py+12],outline=(226,232,242),width=3)
-    d.line([(px+6,py-2),(px+24,py-8)],fill=(206,216,230),width=3)
-    d.line([(px+26,py-16),(px+26,py-30)],fill=(186,196,216),width=2)
-    d.line([(x0+76,y0+62),(px-22,py+2)],fill=GOLD,width=2)
-    d.ellipse([x0+72,y0+58,x0+80,y0+66],fill=(255,232,150))
-    txt(d,x0+92,y0+16,"1 LIGHT-DAY",f("arialbd.ttf",15),GOLD)
-    txt(d,x0+96,y0+38,"25.9 billion km from Earth",F_MICRO,(214,226,244))
-    txt(d,x0+96,y0+52,"a radio signal takes 24 hours",F_MICRO,(214,226,244))
+def art_ipo(d,x0,y0,x1,y1):
+    # the market debut: a trading screen with the ANT ticker and its first-day rise
+    vg(d,x0,y0,x1,y1,(12,34,58),(28,72,104))
+    for gx in range(0,326,40):
+        d.line([(x0+gx,y0),(x0+gx,y1)],fill=(44,88,120),width=1)
+    for gy in range(0,140,28):
+        d.line([(x0,y0+gy),(x1,y0+gy)],fill=(44,88,120),width=1)
+    for i in range(14):
+        bx=x0+16+i*21; base=y0+112-i*3
+        d.line([(bx,base-14),(bx,base+10)],fill=(120,170,200),width=1)
+        d.rectangle([bx-3,base-8,bx+3,base+4],
+                    fill=(80,190,140) if i%3 else (220,96,96))
+    pts=[(x0+16,y0+116),(x0+66,y0+98),(x0+108,y0+104),(x0+152,y0+72),
+         (x0+196,y0+80),(x0+240,y0+44),(x0+306,y0+22)]
+    d.line([p for p in pts],fill=(236,190,92),width=6)
+    d.line([p for p in pts],fill=(255,224,150),width=2)
+    for px,py in pts:
+        d.ellipse([px-3,py-3,px+3,py+3],fill=(255,238,182))
+    d.rectangle([x0+14,y0+10,x0+96,y0+38],fill=(16,44,72))
+    d.rectangle([x0+14,y0+10,x0+96,y0+11],fill=GOLD)
+    txt(d,x0+22,y0+16,"ANT",f("arialbd.ttf",14),WHITE)
+    txt(d,x0+62,y0+18,"$83",f("arialbd.ttf",11),GOLD)
+    txt(d,x0+108,y0+14,"IPO  81.3bn",f("arialbd.ttf",10),(196,220,238))
 
 def art_drones(d,x0,y0,x1,y1):
     vg(d,x0,y0,x1,y1,(12,26,54),(36,58,92))
@@ -270,20 +291,18 @@ def art_drones(d,x0,y0,x1,y1):
     d.polygon([(x0+150,y0+8),(x0+172,y0+4),(x0+168,y0+18),(x0+148,y0+20)],fill=(232,238,248))
     d.line([(x0+158,y0+10),(x0+162,y0+18)],fill=(150,160,180),width=1)
 
-def art_eu(d,x0,y0,x1,y1):
-    vg(d,x0,y0,x1,y1,(240,245,250),(214,226,240))
-    d.rectangle([x0,y0,x1,y0+30],fill=(32,62,138))
-    import math
-    for i in range(12):
-        a=2*math.pi*i/12
-        cx=x0+58+18*math.cos(a); cy=y0+16+13*math.sin(a)
-        d.ellipse([cx-2,cy-2,cx+2,cy+2],fill=(250,214,72))
-    d.rectangle([x0+128,y0+4,x0+196,y0+28],fill=(252,220,64))
-    d.rectangle([x0+128,y0+17,x0+196,y0+28],fill=(32,62,126))
-    d.polygon([(x0+16,y1),(x0+52,y0+38),(x0+88,y1)],fill=(182,196,212))
-    d.rectangle([x0+42,y1-14,x0+62,y1],fill=(148,164,184))
-    for wy in range(y0+36,y1-14,8):
-        d.rectangle([x0+98,wy,x1-12,wy+3],fill=(196,210,226))
+def art_france_ukraine(d,x0,y0,x1,y1):
+    vg(d,x0,y0,x1,y1,(238,243,249),(208,222,238))
+    d.rectangle([x0+12,y0+8,x0+32,y0+36],fill=(36,72,152))
+    d.rectangle([x0+32,y0+8,x0+52,y0+36],fill=(244,244,242))
+    d.rectangle([x0+52,y0+8,x0+72,y0+36],fill=(224,56,64))
+    d.rectangle([x0+80,y0+8,x0+100,y0+24],fill=(72,138,206))
+    d.rectangle([x0+80,y0+24,x0+100,y0+36],fill=(250,214,72))
+    d.polygon([(x0+112,y0+44),(x0+118,y0+28),(x0+144,y0+28),(x0+150,y0+44)],
+              fill=(96,110,124))
+    d.ellipse([x0+116,y0+18,x0+146,y0+30],fill=(112,126,140))
+    d.rectangle([x0+130,y0+6,x0+140,y0+18],fill=(70,84,98))
+    txt(d,x0+12,y0+40,"ADVISORY MISSION",F_MICRO,(70,80,96))
 
 def art_court(d,x0,y0,x1,y1):
     vg(d,x0,y0,x1,y1,(242,236,220),(214,204,184))
@@ -348,15 +367,22 @@ def art_cyclone(d,x0,y0,x1,y1):
               fill=(36,96,148),width=2)
     d.ellipse([x1-64,y0+22,x1-56,y0+30],fill=(24,72,124))
 
-def art_sudan(d,x0,y0,x1,y1):
-    vg(d,x0,y0,x1,y1,(240,208,168),(222,180,136))
-    for i in range(5):
-        d.rectangle([x0+12+i*44,y1-30,x0+34+i*44,y1-10],fill=(158,118,82))
-        d.rectangle([x0+13+i*44,y1-29,x0+16+i*44,y1-11],fill=(190,150,110))
-    for cx,cy in [(x0+120,y0+24),(x0+60,y0+18)]:
-        glow(d,cx,cy,16,(255,222,110),(238,196,150))
-        d.ellipse([cx-4,cy-4,cx+4,cy+4],fill=(255,242,196))
-    d.line([(x1-10,y0+10),(x0+120,y0+24)],fill=RED,width=2)
+def art_ebola(d,x0,y0,x1,y1):
+    vg(d,x0,y0,x1,y1,(222,238,236),(188,218,214))
+    d.line([(x0+40,y1-8),(x0+40,y0+18)],fill=(70,94,100),width=4)
+    d.line([(x0+28,y1-8),(x0+52,y1-8)],fill=(70,94,100),width=3)
+    d.rectangle([x0+30,y0+10,x0+50,y0+24],fill=(92,120,124))
+    d.ellipse([x0+34,y0+6,x0+46,y0+16],fill=(150,182,184))
+    for cx,cy,r in [(x0+96,y0+14,7),(x0+130,y0+30,9),(x0+164,y0+16,6),(x0+200,y0+32,8)]:
+        d.ellipse([cx-r,cy-r,cx+r,cy+r],fill=(196,88,72))
+        for k in range(6):
+            a=k*math.pi/3
+            d.line([(cx+math.cos(a)*r,cy+math.sin(a)*r),
+                    (cx+math.cos(a)*(r+4),cy+math.sin(a)*(r+4))],
+                   fill=(196,88,72),width=1)
+    d.rectangle([x1-34,y0+26,x1-10,y0+32],fill=(240,244,242))
+    d.rectangle([x1-26,y0+18,x1-20,y0+40],fill=(240,244,242))
+    txt(d,x0+10,y0+42,"VACCINE TRIALS",F_MICRO,(56,86,84))
 
 def art_gaza(d,x0,y0,x1,y1):
     vg(d,x0,y0,x1,y1,(198,228,240),(224,234,210))
@@ -369,16 +395,23 @@ def art_gaza(d,x0,y0,x1,y1):
     d.polygon([(x0+40,y0+42),(x0+76,y0+42),(x0+84,y1-4),(x0+34,y1-4)],fill=(86,98,74))
     d.ellipse([x0+46,y0+44,x0+58,y0+52],fill=(120,132,102))
 
-def art_capitol(d,x0,y0,x1,y1):
-    vg(d,x0,y0,x1,y1,(240,244,248),(214,224,234))
-    glow(d,x0+111,y0+22,20,(206,216,232),(238,242,246))
-    d.ellipse([x0+88,y0+4,x0+134,y0+40],fill=(148,158,172))
-    d.arc([x0+88,y0+4,x0+134,y0+40],180,360,fill=(196,204,216),width=2)
-    d.rectangle([x0+82,y0+34,x0+140,y0+46],fill=(148,158,172))
+def art_nsa(d,x0,y0,x1,y1):
+    vg(d,x0,y0,x1,y1,(18,30,48),(44,64,88))
     for i in range(4):
-        d.rectangle([x0+16+i*36,y0+40,x0+30+i*36,y0+54],fill=(168,176,188))
-        d.rectangle([x0+17+i*36,y0+41,x0+20+i*36,y0+53],fill=(200,208,220))
-    d.rectangle([x0+8,y0+44,x1-8,y1-8],fill=(148,158,172))
+        bx=x0+14+i*44
+        d.rectangle([bx,y0+16,bx+34,y1],fill=(30,44,64))
+        d.rectangle([bx+2,y0+18,bx+32,y1-2],outline=(70,92,116),width=1)
+        for k in range(4):
+            wy=y0+22+k*7
+            d.rectangle([bx+5,wy,bx+18,wy+3],
+                        fill=(70,120,150) if k%2 else (46,80,108))
+            d.ellipse([bx+24,wy,bx+27,wy+3],
+                      fill=(220,90,80) if i==1 else (90,180,140))
+    d.line([(x0+40,y0+8),(x0+84,y0+8)],fill=(200,80,72),width=2)
+    d.line([(x0+92,y0+8),(x0+150,y0+8)],fill=(200,80,72),width=2)
+    d.polygon([(x0+88,y0+4),(x0+94,y0+8),(x0+88,y0+12)],fill=(200,80,72))
+    d.rectangle([x0+122,y0+2,x1-10,y0+14],fill=(150,36,42))
+    txt(d,x0+126,y0+4,"NETWORK DOWN",F_MICRO,WHITE)
 
 def draw_world_map(d,x0,y0,x1,y1):
     """Small, clear world map with the 11 story locations numbered 1-11."""
@@ -431,7 +464,7 @@ LEADS=[
   ("GLOBAL","MARKETS","BLOOMBERG · REUTERS","NASDAQ · TICKER ANT","IPO PRICED AT $83",
    "Anthropic prices IPO above range, debuts today",
    "The first frontier-AI listing may top $94bn. Amazon and Google hold 28.4% after the float.",
-   art_space),
+   art_ipo),
 ]
 
 CARDS=[
@@ -444,11 +477,11 @@ CARDS=[
   (7,"MIDDLE EAST","GAZA","BBC · REUTERS","THE YELLOW LINE",
    "Israeli tanks cross into central Gaza again","Families flee as Hamas calls it a ceasefire breach.",art_gaza),
   (8,"EUROPE","UKRAINE WAR","GUARDIAN · AFP","TROOPS ADMITTED",
-   "France admits secret troops in Ukraine","Officers say the mission is advisory; Moscow calls it direct participation.",art_eu),
+   "France admits secret troops in Ukraine","Officers say the mission is advisory; Moscow calls it direct participation.",art_france_ukraine),
   (9,"AFRICA","HEALTH","WHO · RFI","5,568 DEAD",
-   "DRC's Ebola outbreak still out of control","Bundibugyo vaccine trials start next week; 400-500 cases a week.",art_sudan),
+   "DRC's Ebola outbreak still out of control","Bundibugyo vaccine trials start next week; 400-500 cases a week.",art_ebola),
   (10,"AMERICAS","SECURITY","CNN","NSANET DOWN 2 DAYS",
-   "NSA's classified network still down","Patch, not cyberattack, hit a Middle East intel hub.",art_capitol),
+   "NSA's classified network still down","Patch, not cyberattack, hit a Middle East intel hub.",art_nsa),
   (11,"ASIA","WEATHER","IMD","200,000 EVACUATED",
    "Cyclone Akvan closes on Andhra coast","110 km/h winds forecast; Odisha on alert. Landfall is expected Friday.",art_cyclone),
 ]
@@ -592,6 +625,18 @@ d.rectangle([0,1000,W,1001],fill=(206,168,83))
 out=os.environ.get("MAKEFUN_OUTPUT","C:\\Users\\User\\Aws\\agent\\entry_build_1119\\preview_v2.png")
 parent=os.path.dirname(out)
 if parent: os.makedirs(parent,exist_ok=True)
-img = img.resize((W,H), Image.LANCZOS)
-img.save(out,"PNG",optimize=True)
-print("Wrote",out,os.path.getsize(out),"bytes")
+base = img.resize((W,H), Image.LANCZOS)
+noise = make_noise(W,H)
+best = None
+for amp in (1.0,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5):
+    cand = apply_grain(base,noise,amp)
+    buf = io.BytesIO()
+    cand.save(buf,"PNG",optimize=True)
+    size = buf.tell()
+    if size <= 990_000:
+        best = (cand,size,amp)
+    else:
+        break
+cand,size,amp = best
+cand.save(out,"PNG",optimize=True)
+print("Wrote",out,os.path.getsize(out),"bytes, grain",amp)
