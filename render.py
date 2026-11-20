@@ -126,36 +126,40 @@ def badge(d,x,y,n,col,size=12):
 
 # ---------- illustrations (flat, deterministic, no external assets) ----------
 def art_shenzhen(d,x0,y0,x1,y1):
-    vg(d,x0,y0,x1,y1,(204,226,244),(250,216,170))
-    glow(d,x1-46,y0+26,34,(255,238,176),(244,222,180))
-    d.ellipse([x1-58,y0+14,x1-34,y0+38],fill=(248,194,88))
-    d.polygon([(x0,y0+48),(x0+52,y0+20),(x0+96,y0+40),(x0+152,y0+14),
-               (x1,y0+38),(x1,y0+82),(x0,y0+82)],fill=(180,198,216))
-    d.polygon([(x0,y0+64),(x0+74,y0+36),(x0+144,y0+58),(x1,y0+46),
-               (x1,y0+96),(x0,y0+96)],fill=(148,172,196))
-    d.rectangle([x0,y0+94,x1,y1],fill=(126,160,192))
-    for k in range(6):
-        d.rectangle([x0+12+k*3,y0+99+k*6,x1-18-k*5,y0+100+k*6],
-                    fill=mix((126,160,192),(250,216,170),0.3))
-    for i,ht in enumerate([20,34,26,46,30,22,38]):
-        bx=x0+8+i*34
-        d.rectangle([bx,y0+94-ht,bx+26,y0+94],fill=(140,160,182))
-        for wy in range(y0+98-ht,y0+90,7):
-            d.rectangle([bx+4,wy,bx+9,wy+3],fill=(214,230,244))
-            d.rectangle([bx+15,wy,bx+20,wy+3],fill=(214,230,244))
-    for i,ht in enumerate([26,44,34,58,38,28,48]):
-        bx=x0+4+i*36
-        d.rectangle([bx,y1-ht,bx+28,y1],fill=(94,120,152))
-        for wy in range(y1-ht+5,y1-6,7):
-            d.rectangle([bx+5,wy,bx+10,wy+3],fill=(224,238,248))
-            d.rectangle([bx+16,wy,bx+21,wy+3],fill=(212,228,244))
-    # APEC summit flag
-    d.line([(x0+18,y0+8),(x0+18,y0+72)],fill=(72,82,98),width=2)
-    d.polygon([(x0+19,y0+10),(x0+100,y0+14),(x0+92,y0+30),(x0+19,y0+32)],
-              fill=(42,104,168))
-    d.ellipse([x0+32,y0+14,x0+52,y0+27],outline=(232,240,248),width=1)
-    d.arc([x0+33,y0+15,x0+51,y0+26],200,340,fill=(196,220,240),width=1)
-    txt(d,x0+56,y0+14,"APEC",f("arialbd.ttf",10),WHITE)
+    # the summit hall in Shenzhen: dark wood-and-blue wall, warm ceiling light
+    vg(d,x0,y0,x1,y1,(26,44,74),(58,80,110))
+    glow(d,x0+160,y0+16,80,(126,158,198),(32,52,84))
+    for i in range(7):
+        bx=x0+6+i*46
+        d.rectangle([bx,y0+6,bx+42,y0+74],fill=(34,56,88))
+        d.rectangle([bx+2,y0+8,bx+4,y0+72],fill=(66,92,128))
+        d.rectangle([bx+38,y0+8,bx+40,y0+72],fill=(22,40,68))
+    # three large national flags behind the leaders
+    def big_flag(fx,fy,style):
+        d.line([(fx,fy-3),(fx,fy+48)],fill=(198,206,218),width=2)
+        d.ellipse([fx-2,fy-5,fx+2,fy-1],fill=(226,190,96))
+        if style=="us":
+            d.rectangle([fx+2,fy,fx+42,fy+28],fill=(240,242,246))
+            for r in range(7):
+                d.rectangle([fx+2,fy+r*4,fx+42,fy+r*4+2],fill=(186,44,56))
+            d.rectangle([fx+2,fy,fx+20,fy+16],fill=(36,64,124))
+        elif style=="ru":
+            d.rectangle([fx+2,fy,fx+42,fy+10],fill=(246,246,244))
+            d.rectangle([fx+2,fy+10,fx+42,fy+20],fill=(56,96,164))
+            d.rectangle([fx+2,fy+20,fx+42,fy+30],fill=(196,44,56))
+        else:
+            d.rectangle([fx+2,fy,fx+42,fy+30],fill=(218,40,48))
+            d.ellipse([fx+8,fy+8,fx+18,fy+18],fill=(250,214,72))
+    big_flag(x0+48,y0+30,"us")
+    big_flag(x0+142,y0+30,"ru")
+    big_flag(x0+236,y0+30,"cn")
+    # APEC summit banner across the top
+    d.rectangle([x0+18,y0+8,x1-18,y0+26],fill=(42,104,168))
+    d.rectangle([x0+18,y0+8,x1-18,y0+9],fill=(232,190,96))
+    bt="APEC 2026  ·  SHENZHEN SUMMIT"
+    bw=tlen(d,bt,f("arialbd.ttf",10))
+    txt(d,x0+(x1-x0-bw)/2,y0+12,bt,f("arialbd.ttf",10),WHITE)
+    # the table
     # the table
     d.ellipse([x0+10,y1-48,x1-10,y1-12],fill=(34,48,66))
     d.ellipse([x0+20,y1-44,x1-20,y1-16],fill=(58,74,94))
