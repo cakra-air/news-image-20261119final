@@ -159,22 +159,42 @@ def art_shenzhen(d,x0,y0,x1,y1):
     # the table
     d.ellipse([x0+10,y1-48,x1-10,y1-12],fill=(34,48,66))
     d.ellipse([x0+20,y1-44,x1-20,y1-16],fill=(58,74,94))
-    # three named leaders: United States, Russia, China
-    for cx,label,kind in [(x0+66,"US","us"),(x0+160,"RU","ru"),(x0+254,"CN","cn")]:
+    # three leaders, each drawn with the features of the person meant:
+    # Trump (blond swept hair, red tie), Putin (short dark hair, blue tie),
+    # Xi (black side-parted hair, red tie).
+    people=[
+      (x0+66,"US","us",(226,176,136),(232,200,116),(190,44,52),(30,40,60)),
+      (x0+160,"RU","ru",(230,198,172),(64,60,62),(56,96,164),(34,42,62)),
+      (x0+254,"CN","cn",(220,176,140),(44,40,42),(190,44,52),(30,36,50)),
+    ]
+    for cx,label,kind,skin,hair,tie,suit in people:
         d.polygon([(cx-26,y1-12),(cx-22,y1-40),(cx+22,y1-40),(cx+26,y1-12)],
-                  fill=(30,38,54))
+                  fill=suit)
         d.polygon([(cx-24,y1-40),(cx-14,y1-48),(cx+14,y1-48),(cx+24,y1-40)],
-                  fill=(42,52,70))
+                  fill=mix(suit,(120,132,150),0.35))
         d.polygon([(cx-9,y1-39),(cx+9,y1-39),(cx+7,y1-20),(cx-7,y1-20)],
-                  fill=(240,242,246))
-        tie=(190,44,52) if kind!="cn" else (214,172,54)
+                  fill=(242,244,248))
         d.polygon([(cx-3,y1-38),(cx+3,y1-38),(cx+2,y1-24),(cx,y1-19),(cx-2,y1-24)],
                   fill=tie)
-        d.rectangle([cx-4,y1-46,cx+4,y1-36],fill=(214,170,136))
-        d.ellipse([cx-11,y1-64,cx+11,y1-40],fill=(234,190,154))
-        d.pieslice([cx-11,y1-64,cx+11,y1-46],175,365,fill=(58,54,56))
-        d.ellipse([cx-6,y1-53,cx-4,y1-51],fill=(58,52,50))
-        d.ellipse([cx+4,y1-53,cx+6,y1-51],fill=(58,52,50))
+        d.rectangle([cx-4,y1-46,cx+4,y1-36],fill=skin)
+        d.ellipse([cx-11,y1-64,cx+11,y1-40],fill=skin)
+        d.ellipse([cx-13,y1-54,cx-9,y1-47],fill=skin)
+        d.ellipse([cx+9,y1-54,cx+13,y1-47],fill=skin)
+        if kind=="us":                      # swept blond comb-over
+            d.pieslice([cx-12,y1-66,cx+12,y1-44],180,360,fill=hair)
+            d.polygon([(cx-11,y1-56),(cx+11,y1-56),(cx+8,y1-62),(cx-7,y1-64)],
+                      fill=hair)
+        elif kind=="ru":                    # short, slightly receding dark hair
+            d.pieslice([cx-11,y1-64,cx+11,y1-46],190,350,fill=hair)
+            d.rectangle([cx-6,y1-64,cx+6,y1-61],fill=skin)
+        else:                               # full black, side-parted hair
+            d.pieslice([cx-11,y1-64,cx+11,y1-45],175,365,fill=hair)
+            d.polygon([(cx-10,y1-58),(cx-2,y1-63),(cx+10,y1-57)],fill=hair)
+        d.rectangle([cx-7,y1-54,cx-4,y1-53],fill=hair)
+        d.rectangle([cx+4,y1-54,cx+7,y1-53],fill=hair)
+        d.ellipse([cx-6,y1-52,cx-4,y1-50],fill=(56,50,48))
+        d.ellipse([cx+4,y1-52,cx+6,y1-50],fill=(56,50,48))
+        d.line([(cx-3,y1-45),(cx+3,y1-45)],fill=(158,98,82),width=1)
         # name plate: small national flag plus US / RU / CN
         d.rectangle([cx-20,y1-30,cx+20,y1-14],fill=(16,26,42))
         d.rectangle([cx-20,y1-30,cx+20,y1-29],fill=(206,168,83))
