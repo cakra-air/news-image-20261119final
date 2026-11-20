@@ -149,6 +149,13 @@ def art_shenzhen(d,x0,y0,x1,y1):
         for wy in range(y1-ht+5,y1-6,7):
             d.rectangle([bx+5,wy,bx+10,wy+3],fill=(224,238,248))
             d.rectangle([bx+16,wy,bx+21,wy+3],fill=(212,228,244))
+    # APEC summit flag
+    d.line([(x0+18,y0+8),(x0+18,y0+72)],fill=(72,82,98),width=2)
+    d.polygon([(x0+19,y0+10),(x0+100,y0+14),(x0+92,y0+30),(x0+19,y0+32)],
+              fill=(42,104,168))
+    d.ellipse([x0+32,y0+14,x0+52,y0+27],outline=(232,240,248),width=1)
+    d.arc([x0+33,y0+15,x0+51,y0+26],200,340,fill=(196,220,240),width=1)
+    txt(d,x0+56,y0+14,"APEC",f("arialbd.ttf",10),WHITE)
     # the table
     d.ellipse([x0+10,y1-48,x1-10,y1-12],fill=(34,48,66))
     d.ellipse([x0+20,y1-44,x1-20,y1-16],fill=(58,74,94))
