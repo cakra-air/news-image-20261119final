@@ -128,7 +128,7 @@ def badge(d,x,y,n,col,size=12):
 def art_shenzhen(d,x0,y0,x1,y1):
     # the summit hall in Shenzhen: dark wood-and-blue wall, warm ceiling light
     vg(d,x0,y0,x1,y1,(26,44,74),(58,80,110))
-    glow(d,x0+160,y0+16,80,(126,158,198),(32,52,84))
+    glow(d,x0+160,y0+58,48,(126,158,198),(32,52,84))
     for i in range(7):
         bx=x0+6+i*46
         d.rectangle([bx,y0+6,bx+42,y0+74],fill=(34,56,88))
